@@ -143,9 +143,9 @@ impl fmt::Display for ReadError {
             ReadError::EFAULT => "EFAULT".fmt(f),
             ReadError::EINTR => "EINTR".fmt(f),
             ReadError::EINVAL => "EINVAL".fmt(f),
-            ReadError::EINVAL => "EINVAL".fmt(f),
             ReadError::EIO => "EIO".fmt(f),
-            ReadError::EISDIR => EISDI"".fmt(f)
+            ReadError::EISDIR => "EISDIR".fmt(f),
+            ReadError::EOF => "EOF".fmt(f)
         }
     }
 }
@@ -164,7 +164,7 @@ impl fmt::Display for WriteError {
             WriteError::EINVAL => "EINVAL".fmt(f),
             WriteError::EIO => "EIO".fmt(f),
             WriteError::ENOSPC => "ENOSPC".fmt(f),
-            WriteError::EPIPE => EPIP"".fmt(f)
+            WriteError::EPIPE => "EPIPE".fmt(f)
         }
     }
 }

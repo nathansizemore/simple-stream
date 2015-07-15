@@ -17,6 +17,7 @@
 
 use super::message::Message;
 
+#[derive(Clone)]
 pub struct ReadBuffer {
     /// Current message
     c_msg: Message,
@@ -35,8 +36,8 @@ impl ReadBuffer {
     pub fn new() -> ReadBuffer {
         ReadBuffer {
             c_msg: Message::new(),
-            c_remaining: 0u16,
-            c_buffer: Vec::<u8>::new(),
+            c_remaining: 2u16,
+            c_buffer: Vec::<u8>::with_capacity(2),
             queue: Vec::<Message>::new()
         }
     }
@@ -54,21 +55,30 @@ impl ReadBuffer {
 
     /// Sets the buffer's capacity to size
     pub fn set_capacity(&mut self, size: u16) {
-        self.c_remaining = 2u16;
+        self.c_remaining = size;
         self.c_buffer = Vec::<u8>::with_capacity(size as usize);
     }
 
-    ///
-    pub fn set_payload_len(&mut self) {
+    /// Calculates the payload len from the current buffer
+    pub fn calc_payload_len(&mut self) {
         let mut len = 0u16;
-        len = len | self.C_buffer[0] as u16;
-        len = (len << 8) | self.C_buffer[1] as u16;
+        len = len | self.c_buffer[0] as u16;
+        len = (len << 8) | self.c_buffer[1] as u16;
         self.c_msg.len = len;
     }
 
-    ///
+    /// Returns the total length of the expected payload
     pub fn payload_len(&self) -> u16 {
         self.c_msg.len.clone()
+    }
+
+    /// Pushes the current message into the buffer's message queue and resets
+    /// to default state
+    pub fn reset(&mut self) {
+        self.queue.push(self.c_msg.clone());
+        self.c_msg = Message::new();
+        self.c_remaining = 2u16;
+        self.c_buffer = Vec::<u8>::with_capacity(2);
     }
 
 

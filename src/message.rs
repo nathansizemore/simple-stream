@@ -14,7 +14,7 @@
 
 //! Message crate.
 
-
+#[derive(Clone)]
 pub struct Message {
     pub len: u16,
     pub payload: Vec<u8>

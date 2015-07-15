@@ -18,7 +18,7 @@
 extern crate libc;
 extern crate errno;
 
-use std::{mem, ptr, fmt};
+use std::{mem, ptr};
 use std::result::Result;
 use std::net::TcpStream;
 use std::os::unix::io::AsRawFd;
@@ -28,14 +28,11 @@ use self::libc::consts::os::posix88;
 use self::libc::{size_t, c_void, c_int, ssize_t};
 
 use util::*;
-use message::Message;
 use readbuffer::ReadBuffer;
 
+pub mod util;
 mod message;
 mod readbuffer;
-pub mod util;
-
-
 
 extern "C" {
     fn read(fd: c_int, buffer: *mut c_void, count: size_t) -> ssize_t;
@@ -44,7 +41,7 @@ extern "C" {
 
 
 /// Represents the result of trying to create a new SimpleStream
-pub type CreateResult = Result<StreamStream, FcntlError>;
+pub type CreateResult = Result<SimpleStream, FnctlError>;
 
 /// Represents the result of attempting a read on the underlying file descriptor
 pub type ReadResult = Result<(), ReadError>;
@@ -63,7 +60,6 @@ pub enum ReadState {
 }
 
 /// Struct representing a simple messaging protocol over Tcp sockets
-#[derive(Clone)]
 pub struct SimpleStream {
     /// Current state
     state: ReadState,
@@ -118,43 +114,36 @@ impl SimpleStream {
         // is data to be read on the file descriptor, but if we do not clear it
         // all in this run we will lose whatever we do not grab.
         loop {
-            if self.state == ReadState::PayloadLen {
-                let result = self.read_num_bytes(self.buffer.remaining());
-                if result.is_err() {
-                    let err = result.unwrap_err();
-                    match err {
-                        ReadError::EAGAIN => {
-                            return Ok(())
-                        }
-                        ReadError::EWOULDBLOCK => {
-                            return Ok(())
-                        }
-                        _ => return Err(err)
+            let count = self.buffer.remaining();
+            let result = self.read_num_bytes(count);
+            if result.is_err() {
+                let err = result.unwrap_err();
+                match err {
+                    ReadError::EAGAIN => {
+                        return Ok(())
                     }
+                    ReadError::EWOULDBLOCK => {
+                        return Ok(())
+                    }
+                    _ => return Err(err)
                 }
+            }
 
-                // Have we finished reading payload len?
-                if self.buffer.remaining() == 0 {
-                    self.buffer.set_payload_len();
-                    self.buffer.set_capacity(self.buffer.payload_len());
-                } else {
-                    continue;
+            if self.buffer.remaining() == 0 {
+                if self.state == ReadState::PayloadLen {
+                    self.buffer.calc_payload_len();
+                    let p_len = self.buffer.payload_len();
+                    self.buffer.set_capacity(p_len);
+                    self.state = ReadState::Payload;
+                } else { // Payload completely read
+                    self.buffer.reset();
+                    self.state = ReadState::PayloadLen;
                 }
             }
         }
     }
 
-    ///
-    fn read_payload_len() -> ReadResult {
-
-    }
-
-    ///
-    fn read_payload() -> ReadResult {
-
-    }
-
-    ///
+    /// Attempts to read num bytes from the underlying file descriptor.
     fn read_num_bytes(&mut self, num: u16) -> ReadResult {
         let fd = self.stream.as_raw_fd();
 
@@ -173,7 +162,7 @@ impl SimpleStream {
         // Attempt to read available data into buffer
         let mut num_read;
         unsafe {
-            num_read = read(fd, buffer, count as size_t);
+            num_read = read(fd, buffer, num as size_t);
         }
 
         // Return on error
@@ -182,14 +171,19 @@ impl SimpleStream {
             let errno = errno().0 as i32;
             return match errno {
                 posix88::ENOMEM         => Err(ReadError::ENOMEM),
-                posix88::EAGAIN         => Err(ReadError::EAGAIN),
-                posix88::EWOULDBLOCK    => Err(ReadError::EWOULDBLOCK),
                 posix88::EBADF          => Err(ReadError::EBADF),
                 posix88::EFAULT         => Err(ReadError::EFAULT),
                 posix88::EINTR          => Err(ReadError::EINTR),
                 posix88::EINVAL         => Err(ReadError::EINVAL),
                 posix88::EIO            => Err(ReadError::EIO),
                 posix88::EISDIR         => Err(ReadError::EISDIR),
+
+                // These two constants can have the same value on some systems,
+                // but different values on others, so we can't use a match
+                // clause
+                x if x == posix88::EAGAIN || x == posix88::EWOULDBLOCK =>
+                    Err(ReadError::EAGAIN),
+
                 _ => panic!("Unexpected errno during read: {}", errno)
             };
         }
@@ -210,5 +204,74 @@ impl SimpleStream {
         // Free buffer and return Ok
         unsafe { libc::free(buffer); }
         Ok(())
+    }
+
+    ///
+    pub fn write(&mut self, buffer: &Vec<u8>) -> WriteResult {
+        let mut plen_buf = [0u8; 2];
+        plen_buf[0] = (buffer.len() as u16 & 0b1111_1111u16 << 8) as u8;
+        plen_buf[1] = (buffer.len() as u16 & 0b1111_1111u16) as u8;
+
+        let mut n_buffer = Vec::<u8>::with_capacity(buffer.len() + 2);
+        n_buffer.push(plen_buf[0]);
+        n_buffer.push(plen_buf[1]);
+
+        for x in 0..buffer.len() {
+            n_buffer.push(buffer[x]);
+        }
+
+        self.write_bytes(&mut n_buffer)
+    }
+
+    ///
+    fn write_bytes(&mut self, buffer: &mut Vec<u8>) -> WriteResult {
+        let fd = self.stream.as_raw_fd();
+
+        let mut num_written;
+        unsafe {
+            let buf_slc = &buffer[..];
+            let buf_ptr = buf_slc.as_ptr();
+            let v_ptr: *const c_void = mem::transmute(buf_ptr);
+            num_written = write(fd,
+                v_ptr,
+                buffer.len() as size_t);
+        }
+
+        if num_written < 0 {
+            let errno = errno().0 as i32;
+            return match errno {
+                posix88::EBADF          => Err(WriteError::EBADF),
+                posix88::EDESTADDRREQ   => Err(WriteError::EDESTADDRREQ),
+                posix88::EDQUOT         => Err(WriteError::EDQUOT),
+                posix88::EFAULT         => Err(WriteError::EFAULT),
+                posix88::EFBIG          => Err(WriteError::EFBIG),
+                posix88::EINTR          => Err(WriteError::EINTR),
+                posix88::EINVAL         => Err(WriteError::EINVAL),
+                posix88::EIO            => Err(WriteError::EIO),
+                posix88::ENOSPC         => Err(WriteError::ENOSPC),
+                posix88::EPIPE          => Err(WriteError::EPIPE),
+
+                // These two constants can have the same value on some systems,
+                // but different values on others, so we can't use a match
+                // clause
+                x if x == posix88::EAGAIN || x == posix88::EWOULDBLOCK =>
+                    Err(WriteError::EAGAIN),
+
+                _ => panic!("Unknown errno during write: {}", errno),
+            }
+        }
+
+        Ok(num_written as u16)
+    }
+}
+
+
+impl Clone for SimpleStream {
+    fn clone(&self) -> SimpleStream {
+        SimpleStream {
+            state: self.state.clone(),
+            stream: self.stream.try_clone().unwrap(),
+            buffer: self.buffer.clone()
+        }
     }
 }
