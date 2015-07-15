@@ -2,6 +2,8 @@
 
 Async I/O Wrapper for [TcpStream](https://doc.rust-lang.org/stable/std/net/struct.TcpStream.html) designed to be used with [epoll](https://github.com/nathansizemore/epoll) with a simple data framing schema.
 
+[Documentation](https://nathansizemore.github.io/simple-stream/simple_stream/index.html)
+
 ### Data Framing
 ```
 0                   1                   2                   3
