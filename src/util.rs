@@ -44,6 +44,8 @@ pub enum FnctlError {
 
 #[derive(Debug, Clone)]
 pub enum ReadError {
+    /// System is out of memory
+    ENOMEM,
     /// The file descriptor fd refers to a file other than a socket and has been
     /// marked nonblocking (O_NONBLOCK), and the read would block.
     EAGAIN,
@@ -61,7 +63,7 @@ pub enum ReadError {
     /// fd is attached to an object which is unsuitable for reading; or the file was opened
     /// with the O_DIRECT flag, and either the address specified in buf, the value specified
     /// in count, or the current file offset is not suitably aligned.
-    EINVAL,
+    /// OR
     /// fd was created via a call to timerfd_create(2) and the wrong size buffer was given to
     /// read(); see timerfd_create(2) for further information.
     EINVAL,
@@ -72,6 +74,8 @@ pub enum ReadError {
     EIO,
     /// fd refers to a directory.
     EISDIR,
+    /// End of file has been reached. No more can be read from this socket.
+    EOF
 }
 
 #[derive(Debug, Clone)]
@@ -132,6 +136,7 @@ impl fmt::Display for FnctlError {
 impl fmt::Display for ReadError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            ReadError::ENOMEM => "ENOMEM".fmt(f),
             ReadError::EAGAIN => "EAGAIN".fmt(f),
             ReadError::EWOULDBLOCK => "EWOULDBLOCK".fmt(f),
             ReadError::EBADF => "EBADF".fmt(f),

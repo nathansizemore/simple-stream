@@ -22,6 +22,8 @@ pub struct ReadBuffer {
     c_msg: Message,
     /// Current bytes remaining for next read
     c_remaining: u16,
+    /// Current buffer
+    c_buffer: Vec<u8>,
     /// Queue of messages created during last read
     queue: Vec<Message>
 }
@@ -34,15 +36,40 @@ impl ReadBuffer {
         ReadBuffer {
             c_msg: Message::new(),
             c_remaining: 0u16,
+            c_buffer: Vec::<u8>::new(),
             queue: Vec::<Message>::new()
         }
     }
 
-    /// Returns whether or not the struct is in a state to start with a new Message
-    pub fn frame_complete() -> bool {
-        if c_msg.len == c_msg.payload.len() {
-            true
-        }
-        false
+    /// Returns the number of remaining u8 needed to fill the current buffer
+    pub fn remaining(&self) -> u16 {
+        self.c_remaining.clone()
     }
+
+    /// Pushes elem onto buffer
+    pub fn push(&mut self, elem: u8) {
+        self.c_buffer.push(elem);
+        self.c_remaining -= 1;
+    }
+
+    /// Sets the buffer's capacity to size
+    pub fn set_capacity(&mut self, size: u16) {
+        self.c_remaining = 2u16;
+        self.c_buffer = Vec::<u8>::with_capacity(size as usize);
+    }
+
+    ///
+    pub fn set_payload_len(&mut self) {
+        let mut len = 0u16;
+        len = len | self.C_buffer[0] as u16;
+        len = (len << 8) | self.C_buffer[1] as u16;
+        self.c_msg.len = len;
+    }
+
+    ///
+    pub fn payload_len(&self) -> u16 {
+        self.c_msg.len.clone()
+    }
+
+
 }

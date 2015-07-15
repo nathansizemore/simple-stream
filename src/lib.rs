@@ -110,29 +110,35 @@ impl SimpleStream {
         })
     }
 
-    /// Performs a read on the underlying fd. Places all received messages into the
-    /// queue in the ReadBuffer. Reads until EAGAIN is hit.
+    /// Performs a read on the underlying fd. Places all received messages into
+    /// the queue in the ReadBuffer. Reads until EAGAIN is hit.
     pub fn read(&mut self) -> ReadResult {
         // We need to loop until EAGAIN is hit from read_num_bytes.
-        // Epoll is set to EdgeTrigged mode, which will let us known when there is data
-        // to be read on the file descriptor, but if we do not clear it all in this run
-        // we will lose whatever we do not grab.
+        // Epoll is set to EdgeTrigged mode, which will let us known when there
+        // is data to be read on the file descriptor, but if we do not clear it
+        // all in this run we will lose whatever we do not grab.
         loop {
             if self.state == ReadState::PayloadLen {
-                // Do we need to reset our internal buffer?
-                if self.buffer.frame_complete() {
-                    let result = self.read_payload_len();
-                    if result.is_err() {
-                        let err = result.unwrap_err();
-                        match result.unwrap_err() {
-                            ReadError::EAGAIN => {
-
-                            }
-                            ReadError::EWOULDBLOCK => {
-
-                            }
+                let result = self.read_num_bytes(self.buffer.remaining());
+                if result.is_err() {
+                    let err = result.unwrap_err();
+                    match err {
+                        ReadError::EAGAIN => {
+                            return Ok(())
                         }
+                        ReadError::EWOULDBLOCK => {
+                            return Ok(())
+                        }
+                        _ => return Err(err)
                     }
+                }
+
+                // Have we finished reading payload len?
+                if self.buffer.remaining() == 0 {
+                    self.buffer.set_payload_len();
+                    self.buffer.set_capacity(self.buffer.payload_len());
+                } else {
+                    continue;
                 }
             }
         }
@@ -141,5 +147,68 @@ impl SimpleStream {
     ///
     fn read_payload_len() -> ReadResult {
 
+    }
+
+    ///
+    fn read_payload() -> ReadResult {
+
+    }
+
+    ///
+    fn read_num_bytes(&mut self, num: u16) -> ReadResult {
+        let fd = self.stream.as_raw_fd();
+
+        // Create a buffer, size num
+        let mut buffer;
+        unsafe {
+            buffer = libc::calloc(num as size_t,
+                mem::size_of::<u8>() as size_t);
+        }
+
+        // Ensure system gave up dynamic memory
+        if buffer.is_null() {
+            return Err(ReadError::ENOMEM)
+        }
+
+        // Attempt to read available data into buffer
+        let mut num_read;
+        unsafe {
+            num_read = read(fd, buffer, count as size_t);
+        }
+
+        // Return on error
+        if num_read < 0 {
+            unsafe { libc::free(buffer); }
+            let errno = errno().0 as i32;
+            return match errno {
+                posix88::ENOMEM         => Err(ReadError::ENOMEM),
+                posix88::EAGAIN         => Err(ReadError::EAGAIN),
+                posix88::EWOULDBLOCK    => Err(ReadError::EWOULDBLOCK),
+                posix88::EBADF          => Err(ReadError::EBADF),
+                posix88::EFAULT         => Err(ReadError::EFAULT),
+                posix88::EINTR          => Err(ReadError::EINTR),
+                posix88::EINVAL         => Err(ReadError::EINVAL),
+                posix88::EIO            => Err(ReadError::EIO),
+                posix88::EISDIR         => Err(ReadError::EISDIR),
+                _ => panic!("Unexpected errno during read: {}", errno)
+            };
+        }
+
+        // Check for EOF
+        if num_read == 0 {
+            unsafe { libc::free(buffer); }
+            return Err(ReadError::EOF);
+        }
+
+        // Add bytes to msg buffer
+        for x in 0..num_read as isize {
+            unsafe {
+                self.buffer.push(ptr::read(buffer.offset(x)) as u8);
+            }
+        }
+
+        // Free buffer and return Ok
+        unsafe { libc::free(buffer); }
+        Ok(())
     }
 }
