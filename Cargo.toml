@@ -1,6 +1,6 @@
 [package]
 name = "simple-stream"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Nathan Sizemore <nathanrsizemore@gmail.com>"]
 description = "Simple messaging protocol built on non-blocking TcpStream"
 repository = "https://github.com/nathansizemore/simple-stream"
