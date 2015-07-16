@@ -21,7 +21,7 @@ extern crate errno;
 use std::{mem, ptr};
 use std::result::Result;
 use std::net::TcpStream;
-use std::os::unix::io::AsRawFd;
+use std::os::unix::io::{RawFd, AsRawFd};
 
 use self::errno::errno;
 use self::libc::consts::os::posix88;
