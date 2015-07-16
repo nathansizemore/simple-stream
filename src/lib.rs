@@ -263,6 +263,11 @@ impl SimpleStream {
 
         Ok(num_written as u16)
     }
+
+    /// Returns the underlying file descriptor
+    pub fn raw_fd(&self) -> RawFd {
+        self.stream.as_raw_fd()
+    }
 }
 
 
