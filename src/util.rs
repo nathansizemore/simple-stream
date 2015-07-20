@@ -49,11 +49,6 @@ pub enum ReadError {
     /// The file descriptor fd refers to a file other than a socket and has been
     /// marked nonblocking (O_NONBLOCK), and the read would block.
     EAGAIN,
-    /// The file descriptor fd refers to a socket and has been marked nonblocking (O_NONBLOCK),
-    /// and the read would block. POSIX.1-2001 allows either error to be returned for this case,
-    /// and does not require these constants to have the same value, so a portable application
-    /// should check for both possibilities.
-    EWOULDBLOCK,
     /// fd is not a valid file descriptor or is not open for reading.
     EBADF,
     /// buf is outside your accessible address space.
@@ -138,7 +133,6 @@ impl fmt::Display for ReadError {
         match *self {
             ReadError::ENOMEM => "ENOMEM".fmt(f),
             ReadError::EAGAIN => "EAGAIN".fmt(f),
-            ReadError::EWOULDBLOCK => "EWOULDBLOCK".fmt(f),
             ReadError::EBADF => "EBADF".fmt(f),
             ReadError::EFAULT => "EFAULT".fmt(f),
             ReadError::EINTR => "EINTR".fmt(f),
