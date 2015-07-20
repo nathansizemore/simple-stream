@@ -223,7 +223,7 @@ impl SimpleStream {
         self.write_bytes(&mut n_buffer)
     }
 
-    ///
+    /// Attempts to write the passed buffer to the underlying file descriptor
     fn write_bytes(&mut self, buffer: &mut Vec<u8>) -> WriteResult {
         let fd = self.stream.as_raw_fd();
 
