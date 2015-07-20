@@ -15,6 +15,9 @@
 //! SimpleStream crate.
 
 
+#![allow(dead_code)]
+
+
 extern crate libc;
 extern crate errno;
 
@@ -264,6 +267,11 @@ impl SimpleStream {
     /// Returns the underlying file descriptor
     pub fn raw_fd(&self) -> RawFd {
         self.stream.as_raw_fd()
+    }
+
+    /// Returns a mutable reference to the internal ReadBuffer
+    pub fn buffer_as_mut(&mut self) -> &mut ReadBuffer {
+        &mut self.buffer
     }
 }
 

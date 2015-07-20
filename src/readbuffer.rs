@@ -81,5 +81,24 @@ impl ReadBuffer {
         self.c_buffer = Vec::<u8>::with_capacity(2);
     }
 
+    /// Returns the length of internal message queue
+    pub fn queue_len(&self) -> usize {
+        self.queue.len()
+    }
 
+    /// Returns a mutable reference to the internal message queue
+    pub fn queue_as_mut(&mut self) -> &mut Vec<Message> {
+        &mut self.queue
+    }
+
+    /// Drains the queue returning a Vec<Vec<u8>> representing each payload
+    pub fn drain_queue(&mut self) -> Vec<Vec<u8>> {
+        let mut buffer = Vec::<Vec<u8>>::with_capacity(self.queue.len());
+        let mut pos = self.queue.len() - 1;
+        while let Some(msg) = self.queue.pop() {
+            buffer.insert(pos, msg.payload);
+            pos -= 1;
+        }
+        buffer
+    }
 }
