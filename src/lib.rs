@@ -34,8 +34,10 @@ use util::*;
 use readbuffer::ReadBuffer;
 
 pub mod util;
+pub mod readbuffer;
+
 mod message;
-mod readbuffer;
+
 
 extern "C" {
     fn read(fd: c_int, buffer: *mut c_void, count: size_t) -> ssize_t;
