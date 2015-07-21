@@ -13,6 +13,8 @@
 
 
 //! NbetStream module.
+//! This is a Non-blocking file descriptor stream designed to be used with
+//! Linux epoll in EdgeTriggered mode.
 
 
 use std::{mem, ptr};
