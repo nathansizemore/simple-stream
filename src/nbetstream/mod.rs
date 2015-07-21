@@ -12,7 +12,7 @@
 // the Mozilla Public License, v. 2.0.
 
 
-//! SimpleStream crate.
+//! NbetStream module.
 
 
 use std::{mem, ptr};
@@ -37,8 +37,8 @@ extern "C" {
 }
 
 
-/// Represents the result of trying to create a new SimpleStream
-pub type CreateResult = Result<SimpleStream, FnctlError>;
+/// Represents the result of trying to create a new NbetStream
+pub type CreateResult = Result<NbetStream, FnctlError>;
 
 /// Represents the result of attempting a read on the underlying file descriptor
 pub type ReadResult = Result<(), ReadError>;
@@ -49,7 +49,7 @@ pub type WriteResult = Result<u16, WriteError>;
 
 /// States the current stream can be in
 #[derive(PartialEq, Clone)]
-pub enum ReadState {
+enum ReadState {
     /// Currently reading the payload length
     PayloadLen,
     /// Currently reading the payload
@@ -57,7 +57,7 @@ pub enum ReadState {
 }
 
 /// Struct representing a simple messaging protocol over Tcp sockets
-pub struct SimpleStream {
+pub struct NbetStream {
     /// Current state
     state: ReadState,
     /// Underlying std::net::TcpStream
@@ -67,9 +67,9 @@ pub struct SimpleStream {
 }
 
 
-impl SimpleStream {
+impl NbetStream {
 
-    /// Attempts to create a new SimpleStream from a TcpStream
+    /// Attempts to create a new NbetStream from a TcpStream
     pub fn new(stream: TcpStream) -> CreateResult {
         let fd = stream.as_raw_fd();
         let mut response;
@@ -96,7 +96,7 @@ impl SimpleStream {
             };
         }
 
-        Ok(SimpleStream {
+        Ok(NbetStream {
             state: ReadState::PayloadLen,
             stream: stream,
             buffer: ReadBuffer::new()
@@ -270,9 +270,9 @@ impl SimpleStream {
 }
 
 
-impl Clone for SimpleStream {
-    fn clone(&self) -> SimpleStream {
-        SimpleStream {
+impl Clone for NbetStream {
+    fn clone(&self) -> NbetStream {
+        NbetStream {
             state: self.state.clone(),
             stream: self.stream.try_clone().unwrap(),
             buffer: self.buffer.clone()
