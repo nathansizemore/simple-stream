@@ -118,3 +118,13 @@ impl Bstream {
         }
     }
 }
+
+impl Clone for Bstream {
+    fn clone(&self) -> Bstream {
+        Bstream {
+            state: self.state.clone(),
+            stream: self.stream.try_clone().unwrap(),
+            buffer: self.buffer.clone()
+        }
+    }
+}
