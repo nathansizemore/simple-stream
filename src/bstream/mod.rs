@@ -109,7 +109,19 @@ impl Bstream {
     /// Performs a blocking write operation and returns the complete buffer has
     /// been written, or an error has occured
     pub fn write(&mut self, buffer: &Vec<u8>) -> WriteResult {
-        match self.stream.write_all(&buffer[..]) {
+        let mut plen_buf = [0u8; 2];
+        plen_buf[0] = (buffer.len() as u16 & 0b1111_1111u16 << 8) as u8;
+        plen_buf[1] = (buffer.len() as u16 & 0b1111_1111u16) as u8;
+
+        let mut n_buffer = Vec::<u8>::with_capacity(buffer.len() + 2);
+        n_buffer.push(plen_buf[0]);
+        n_buffer.push(plen_buf[1]);
+
+        for x in 0..buffer.len() {
+            n_buffer.push(buffer[x]);
+        }
+
+        match self.stream.write_all(&n_buffer[..]) {
             Ok(()) => {
                 let _ = self.stream.flush();
                 Ok(())
