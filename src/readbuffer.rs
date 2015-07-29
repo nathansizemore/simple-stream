@@ -99,7 +99,7 @@ impl ReadBuffer {
         }
         let mut pos = (self.queue.len() - 1) as isize;
         while let Some(msg) = self.queue.pop() {
-            buffer.insert(pos, msg.payload);
+            buffer.insert(pos as usize, msg.payload);
             pos -= 1;
         }
         buffer
