@@ -75,6 +75,7 @@ impl ReadBuffer {
     /// Pushes the current message into the buffer's message queue and resets
     /// to default state
     pub fn reset(&mut self) {
+        self.c_msg.payload = self.c_buffer.clone();
         self.queue.push(self.c_msg.clone());
         self.c_msg = Message::new();
         self.c_remaining = 2u16;
@@ -112,7 +113,7 @@ impl ReadBuffer {
             let payload = msg.payload.clone();
             buffer.push(payload);
         }
-        
+
         self.queue = Vec::<Message>::new();
         buffer
     }
