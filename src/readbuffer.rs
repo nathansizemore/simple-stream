@@ -97,7 +97,7 @@ impl ReadBuffer {
         unsafe {
             buffer.set_len(self.queue.len());
         }
-        let mut pos = self.queue.len() - 1;
+        let mut pos = (self.queue.len() - 1) as isize;
         while let Some(msg) = self.queue.pop() {
             buffer.insert(pos, msg.payload);
             pos -= 1;
