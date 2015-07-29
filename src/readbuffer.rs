@@ -93,15 +93,27 @@ impl ReadBuffer {
 
     /// Drains the queue returning a Vec<Vec<u8>> representing each payload
     pub fn drain_queue(&mut self) -> Vec<Vec<u8>> {
+        // let mut buffer = Vec::<Vec<u8>>::with_capacity(self.queue.len());
+        // unsafe {
+        //     buffer.set_len(self.queue.len());
+        // }
+        // let mut pos = (self.queue.len() - 1) as isize;
+        // while let Some(msg) = self.queue.pop() {
+        //     buffer.insert(pos as usize, msg.payload);
+        //     pos -= 1;
+        // }
+        // buffer
+
+        // FIXME - This is the worst.
+        // I think something is wrong with the code above, so this is
+        // the current, slow, approach
         let mut buffer = Vec::<Vec<u8>>::with_capacity(self.queue.len());
-        unsafe {
-            buffer.set_len(self.queue.len());
+        for msg in self.queue.iter() {
+            let payload = msg.payload.clone();
+            buffer.push(payload);
         }
-        let mut pos = (self.queue.len() - 1) as isize;
-        while let Some(msg) = self.queue.pop() {
-            buffer.insert(pos as usize, msg.payload);
-            pos -= 1;
-        }
+        
+        self.queue = Vec::<Message>::new();
         buffer
     }
 }
