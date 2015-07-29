@@ -126,12 +126,18 @@ impl NbetStream {
             }
 
             if self.buffer.remaining() == 0 {
+
+                println!("buffer.remaining == 0");
+
                 if self.state == ReadState::PayloadLen {
+                    println!("state was PayloadLen");
+
                     self.buffer.calc_payload_len();
                     let p_len = self.buffer.payload_len();
                     self.buffer.set_capacity(p_len);
                     self.state = ReadState::Payload;
                 } else { // Payload completely read
+                    println!("state was payload");
                     self.buffer.reset();
                     self.state = ReadState::PayloadLen;
                 }
@@ -160,6 +166,8 @@ impl NbetStream {
         unsafe {
             num_read = read(fd, buffer, num as size_t);
         }
+
+        println!("read_num_bytes.num_read: {}", num_read);
 
         // Return on error
         if num_read < 0 {
