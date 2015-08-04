@@ -70,7 +70,10 @@ pub enum ReadError {
     /// fd refers to a directory.
     EISDIR,
     /// End of file has been reached. No more can be read from this socket.
-    EOF
+    EOF,
+    /// fd is connected to a TCP socket where the other end has been closed, but the write
+    /// command has not had enough time to finish writing to the internal buffer
+    ECONNRESET
 }
 
 #[derive(Debug, Clone)]
@@ -109,7 +112,10 @@ pub enum WriteError {
     /// fd is connected to a pipe or socket whose reading end is closed. When this happens
     /// the writing process will also receive a SIGPIPE signal. (Thus, the write return value
     /// is seen only if the program catches, blocks or ignores this signal.)
-    EPIPE
+    EPIPE,
+    /// fd is connected to a TCP socket where the other end has been closed, but the write
+    /// command has not had enough time to finish writing to the internal buffer
+    ECONNRESET
 }
 
 impl fmt::Display for FnctlError {
@@ -139,7 +145,8 @@ impl fmt::Display for ReadError {
             ReadError::EINVAL => "EINVAL".fmt(f),
             ReadError::EIO => "EIO".fmt(f),
             ReadError::EISDIR => "EISDIR".fmt(f),
-            ReadError::EOF => "EOF".fmt(f)
+            ReadError::EOF => "EOF".fmt(f),
+            ReadError::ECONNRESET => "ECONNRESET".fmt(f)
         }
     }
 }
@@ -158,7 +165,8 @@ impl fmt::Display for WriteError {
             WriteError::EINVAL => "EINVAL".fmt(f),
             WriteError::EIO => "EIO".fmt(f),
             WriteError::ENOSPC => "ENOSPC".fmt(f),
-            WriteError::EPIPE => "EPIPE".fmt(f)
+            WriteError::EPIPE => "EPIPE".fmt(f),
+            WriteError::ECONNRESET => "ECONNRESET".fmt(f)
         }
     }
 }

@@ -173,6 +173,7 @@ impl NbetStream {
                 posix88::EINVAL         => Err(ReadError::EINVAL),
                 posix88::EIO            => Err(ReadError::EIO),
                 posix88::EISDIR         => Err(ReadError::EISDIR),
+                posix88::ECONNRESET     => Err(ReadError::ECONNRESET),
 
                 // These two constants can have the same value on some systems,
                 // but different values on others, so we can't use a match
@@ -246,6 +247,7 @@ impl NbetStream {
                 posix88::EIO            => Err(WriteError::EIO),
                 posix88::ENOSPC         => Err(WriteError::ENOSPC),
                 posix88::EPIPE          => Err(WriteError::EPIPE),
+                posix88::ECONNRESET     => Err(WriteError::ECONNRESET),
 
                 // These two constants can have the same value on some systems,
                 // but different values on others, so we can't use a match
