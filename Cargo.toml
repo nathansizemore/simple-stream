@@ -3,7 +3,6 @@ name = "simple-stream"
 version = "0.1.0"
 authors = ["Nathan Sizemore <nathanrsizemore@gmail.com>"]
 description = "Simple messaging protocol built on non-blocking TcpStream"
-repository = "https://github.com/nathansizemore/simple-stream"
 readme = "README.md"
 keywords = ["tcp", "non", "blocking", "socket", "stream"]
 license = "MPL-2.0"
