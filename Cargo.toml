@@ -5,8 +5,11 @@ authors = ["Nathan Sizemore <nathanrsizemore@gmail.com>"]
 description = "Simple messaging protocol built on non-blocking TcpStream"
 repository = "https://github.com/nathansizemore/simple-stream"
 readme = "README.md"
-keywords = ["tcp", "non", "blocking", "socket"]
-license = "MPL 2.0"
+keywords = ["tcp", "non", "blocking", "socket", "stream"]
+license = "MPL-2.0"
+repository = "https://github.com/nathansizemore/simple-stream"
+homepage = "https://github.com/nathansizemore/simple-stream"
+documentation = "https://nathansizemore.github.io/simple-stream/simple_stream/index.html"
 
 [dependencies]
 errno = "*"

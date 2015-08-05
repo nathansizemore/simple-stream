@@ -1,6 +1,8 @@
 # simple-stream
 
-Async I/O Wrapper for [TcpStream](https://doc.rust-lang.org/stable/std/net/struct.TcpStream.html) designed to be used with [epoll](https://github.com/nathansizemore/epoll) with a simple data framing schema.
+Various wrappers for [TcpStream](https://doc.rust-lang.org/stable/std/net/struct.TcpStream.html). Relies on `read` and `write` syscalls. Very simple data framing pattern.
+
+[NbetStream](https://nathansizemore.github.io/simple-stream/simple_stream/nbetstream/index.html) is an async stream designed to be used with [epoll](https://github.com/nathansizemore/epoll) Linux kernel's epoll in EdgeTriggered mode.
 
 [Documentation](https://nathansizemore.github.io/simple-stream/simple_stream/index.html)
 
