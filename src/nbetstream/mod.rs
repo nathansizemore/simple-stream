@@ -218,6 +218,10 @@ impl NbetStream {
 
     /// Attempts to write the passed buffer to the underlying file descriptor
     fn write_bytes(&mut self, buffer: &mut Vec<u8>) -> WriteResult {
+
+        println!("Writing bytes");
+        println!("buffer.len(): {}", buffer.len());
+
         let fd = self.stream.as_raw_fd();
 
         let mut num_written;
@@ -254,6 +258,8 @@ impl NbetStream {
                 _ => panic!("Unknown errno during write: {}", errno),
             }
         }
+
+        println!("Wrote: {}bytes", num_written);
 
         Ok(num_written as u16)
     }

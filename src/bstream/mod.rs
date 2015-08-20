@@ -82,6 +82,12 @@ impl Bstream {
                 if self.state == ReadState::PayloadLen {
 
                     println!("Payload length read complete");
+                    println!("Printing buffer...");
+                    let mut index = 0;
+                    for byte in self.buffer.current_buffer().iter() {
+                        println!("byte {}: {}", index, byte);
+                        index += 1;
+                    }
 
                     self.buffer.calc_payload_len();
                     let p_len = self.buffer.payload_len();
@@ -93,6 +99,12 @@ impl Bstream {
                 } else { // Payload completely read
 
                     println!("Payload read complete");
+                    println!("Printing buffer...");
+                    let mut index = 0;
+                    for byte in self.buffer.current_buffer().iter() {
+                        println!("byte {}: {}", index, byte);
+                        index += 1;
+                    }
 
                     self.buffer.reset();
                     self.state = ReadState::PayloadLen;

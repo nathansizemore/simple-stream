@@ -113,4 +113,9 @@ impl ReadBuffer {
         self.queue = Vec::<Message>::new();
         buffer
     }
+
+    /// Returns a copy of the current internal buffer
+    pub fn current_buffer(&self) -> Vec<u8> {
+        self.c_buffer.clone()
+    }
 }
