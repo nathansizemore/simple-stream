@@ -136,7 +136,7 @@ impl Bstream {
     /// been written, or an error has occured
     pub fn write(&mut self, buffer: &Vec<u8>) -> WriteResult {
         let mut plen_buf = [0u8; 2];
-        plen_buf[0] = (buffer.len() as u16 & 0b1111_1111u16 << 8) as u8;
+        plen_buf[0] = (buffer.len() as u16 >> 8) as u8;
         plen_buf[1] = (buffer.len() as u16 & 0b1111_1111u16) as u8;
 
         let mut n_buffer = Vec::<u8>::with_capacity(buffer.len() + 2);
