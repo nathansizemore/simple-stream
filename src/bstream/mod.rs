@@ -59,6 +59,9 @@ impl Bstream {
     /// Performs a blocking read and returns when a complete message
     /// has been returned, or an error has occured
     pub fn read(&mut self) -> ReadResult {
+
+        println!("simple stream read loop =============");
+
         loop {
             // Create a buffer for this specific read iteration
             let count = self.buffer.remaining();
@@ -77,11 +80,20 @@ impl Bstream {
 
             if self.buffer.remaining() == 0 {
                 if self.state == ReadState::PayloadLen {
+
+                    println!("Payload length read complete");
+
                     self.buffer.calc_payload_len();
                     let p_len = self.buffer.payload_len();
+
+                    println!("Payload length: {}", p_len);
+
                     self.buffer.set_capacity(p_len);
                     self.state = ReadState::Payload;
                 } else { // Payload completely read
+
+                    println!("Payload read complete");
+
                     self.buffer.reset();
                     self.state = ReadState::PayloadLen;
                     break;
@@ -89,7 +101,13 @@ impl Bstream {
             }
         }
 
+        println!("simple stream read loop finished =============");
+
         let mut buffer = self.buffer.drain_queue();
+
+        println!("Queue drained");
+        println!("buffer.len: {}", buffer.len());
+
         // This should always be .len() of 1
         // if it isn't - we're doing some bad stuff in here
         if buffer.len() != 1 {
