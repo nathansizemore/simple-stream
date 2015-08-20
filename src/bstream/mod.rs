@@ -59,9 +59,6 @@ impl Bstream {
     /// Performs a blocking read and returns when a complete message
     /// has been returned, or an error has occured
     pub fn read(&mut self) -> ReadResult {
-
-        println!("simple stream read loop =============");
-
         loop {
             // Create a buffer for this specific read iteration
             let count = self.buffer.remaining();
@@ -112,13 +109,7 @@ impl Bstream {
                 }
             }
         }
-
-        println!("simple stream read loop finished =============");
-
         let mut buffer = self.buffer.drain_queue();
-
-        println!("Queue drained");
-        println!("buffer.len: {}", buffer.len());
 
         // This should always be .len() of 1
         // if it isn't - we're doing some bad stuff in here
@@ -138,12 +129,7 @@ impl Bstream {
         let mut plen_buf = [0u8; 2];
         let plen = buffer.len() as u16;
         plen_buf[0] = (plen >> 8) as u8;
-
-        println!("plen_buf[0]: {}", plen_buf[0]);
-
         plen_buf[1] = plen as u8;
-
-        println!("plen_buf[1]: {}", plen_buf[1]);
 
         let mut n_buffer = Vec::<u8>::with_capacity(buffer.len() + 2);
         n_buffer.push(plen_buf[0]);
