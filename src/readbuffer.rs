@@ -57,8 +57,8 @@ impl ReadBuffer {
 
     /// Calculates the payload len from the current buffer
     pub fn calc_payload_len(&mut self) {
-        let mut len = ((self.c_buffer[0] as u16) << 8) as u16;
-        len = len | (self.c_buffer[1] as u16) >> 8;
+        let mut len = (self.c_buffer[0] as u16) << 8;
+        len = len | (self.c_buffer[1] as u16);
         self.c_msg.len = len;
     }
 
