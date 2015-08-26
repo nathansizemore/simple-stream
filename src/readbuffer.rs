@@ -55,7 +55,7 @@ impl ReadBuffer {
         self.c_buffer = Vec::<u8>::with_capacity(size as usize);
     }
 
-    /// Calculates the payload len from the current buffer
+    /// Calculates the payload len from the current buffer and sets it
     pub fn calc_payload_len(&mut self) {
         let mut len;
         let mask = 0xFFFFu16;
