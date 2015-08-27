@@ -13,7 +13,7 @@
 
 
 use std::result::Result;
-use std::net::TcpStream;
+use std::net::{TcpStream, Shutdown};
 use std::io::{Read, Write, Error};
 
 use super::readbuffer::ReadBuffer;
@@ -77,9 +77,6 @@ impl Bstream {
 
             if self.buffer.remaining() == 0 {
                 if self.state == ReadState::PayloadLen {
-
-                    println!("Payload length read complete");
-                    println!("Printing buffer...");
                     let mut index = 0;
                     for byte in self.buffer.current_buffer().iter() {
                         println!("byte {}: {}", index, byte);
@@ -88,15 +85,9 @@ impl Bstream {
 
                     self.buffer.calc_payload_len();
                     let p_len = self.buffer.payload_len();
-
-                    println!("Payload length: {}", p_len);
-
                     self.buffer.set_capacity(p_len);
                     self.state = ReadState::Payload;
                 } else { // Payload completely read
-
-                    println!("Payload read complete");
-                    println!("Printing buffer...");
                     let mut index = 0;
                     for byte in self.buffer.current_buffer().iter() {
                         println!("byte {}: {}", index, byte);
@@ -145,6 +136,14 @@ impl Bstream {
                 Ok(())
             }
             Err(e) => Err(e)
+        }
+    }
+
+    /// Shuts down the connection
+    pub fn shutdown(&self) {
+        let result = self.stream.shutdown(Shutdown::Both);
+        if result.is_err() {
+            panic!("Error shutting down stream: {}", result.unwrap_err())
         }
     }
 }
