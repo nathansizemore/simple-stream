@@ -190,6 +190,7 @@ impl NbetStream {
         // Add bytes to msg buffer
         for x in 0..num_read as isize {
             unsafe {
+                println!("nbetstream read: {}", ptr::read(buffer.offset(x)) as u8);
                 self.buffer.push(ptr::read(buffer.offset(x)) as u8);
             }
         }
