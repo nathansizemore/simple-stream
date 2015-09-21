@@ -11,8 +11,6 @@
 //! SimpleStream crate.
 
 
-#![allow(dead_code)]
-
 extern crate libc;
 extern crate errno;
 

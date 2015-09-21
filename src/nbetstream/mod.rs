@@ -70,7 +70,7 @@ impl NbetStream {
     /// Attempts to create a new NbetStream from a TcpStream
     pub fn new(stream: TcpStream) -> CreateResult {
         let fd = stream.as_raw_fd();
-        let mut response;
+        let response;
         unsafe {
             response = libc::fcntl(
                 fd,
@@ -140,7 +140,7 @@ impl NbetStream {
         let fd = self.stream.as_raw_fd();
 
         // Create a buffer, size num
-        let mut buffer;
+        let buffer;
         unsafe {
             buffer = libc::calloc(num as size_t,
                 mem::size_of::<u8>() as size_t);
@@ -152,7 +152,7 @@ impl NbetStream {
         }
 
         // Attempt to read available data into buffer
-        let mut num_read;
+        let num_read;
         unsafe {
             num_read = read(fd, buffer, num as size_t);
         }
@@ -190,7 +190,6 @@ impl NbetStream {
         // Add bytes to msg buffer
         for x in 0..num_read as isize {
             unsafe {
-                println!("nbetstream read: {}", ptr::read(buffer.offset(x)) as u8);
                 self.buffer.push(ptr::read(buffer.offset(x)) as u8);
             }
         }
@@ -222,7 +221,7 @@ impl NbetStream {
     fn write_bytes(&mut self, buffer: &mut Vec<u8>) -> WriteResult {
         let fd = self.stream.as_raw_fd();
 
-        let mut num_written;
+        let num_written;
         unsafe {
             let buf_slc = &buffer[..];
             let buf_ptr = buf_slc.as_ptr();
@@ -256,8 +255,6 @@ impl NbetStream {
                 _ => panic!("Unknown errno during write: {}", errno),
             }
         }
-
-        println!("Wrote: {}bytes", num_written);
 
         Ok(num_written as u16)
     }
