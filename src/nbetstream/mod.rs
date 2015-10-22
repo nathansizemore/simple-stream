@@ -142,8 +142,7 @@ impl NbetStream {
         // Create a buffer, size num
         let buffer;
         unsafe {
-            buffer = libc::calloc(num as size_t,
-                mem::size_of::<u8>() as size_t);
+            buffer = libc::calloc(num as size_t, mem::size_of::<u8>() as size_t);
         }
 
         // Ensure system gave up dynamic memory
@@ -171,11 +170,8 @@ impl NbetStream {
                 posix88::EISDIR         => Err(ReadError::EISDIR),
                 posix88::ECONNRESET     => Err(ReadError::ECONNRESET),
 
-                // These two constants can have the same value on some systems,
-                // but different values on others, so we can't use a match
-                // clause
-                x if x == posix88::EAGAIN || x == posix88::EWOULDBLOCK =>
-                    Err(ReadError::EAGAIN),
+                // These two constants differ between OSes, so we can't use a match clause
+                x if x == posix88::EAGAIN || x == posix88::EWOULDBLOCK => Err(ReadError::EAGAIN),
 
                 _ => panic!("Unexpected errno during read: {}", errno)
             };
