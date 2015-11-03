@@ -20,7 +20,6 @@ use std::os::unix::io::{RawFd, AsRawFd};
 
 use super::libc;
 use super::errno::errno;
-use super::libc::consts::os::posix88;
 use super::libc::{size_t, c_void, c_int, ssize_t};
 use super::readbuffer::ReadBuffer;
 
@@ -74,22 +73,22 @@ impl NbetStream {
         unsafe {
             response = libc::fcntl(
                 fd,
-                libc::consts::os::posix01::F_SETFL,
-                libc::consts::os::extra::O_NONBLOCK);
+                libc::F_SETFL,
+                libc::O_NONBLOCK);
         }
 
         if response < 0 {
             let errno = errno().0 as i32;
             return match errno {
-                posix88::EAGAIN     => Err(FnctlError::EAGAIN),
-                posix88::EBADF      => Err(FnctlError::EBADF),
-                posix88::EDEADLK    => Err(FnctlError::EDEADLK),
-                posix88::EFAULT     => Err(FnctlError::EFAULT),
-                posix88::EINTR      => Err(FnctlError::EINTR),
-                posix88::EINVAL     => Err(FnctlError::EINVAL),
-                posix88::EMFILE     => Err(FnctlError::EMFILE),
-                posix88::ENOLCK     => Err(FnctlError::ENOLCK),
-                posix88::EPERM      => Err(FnctlError::EPERM),
+                libc::EAGAIN     => Err(FnctlError::EAGAIN),
+                libc::EBADF      => Err(FnctlError::EBADF),
+                libc::EDEADLK    => Err(FnctlError::EDEADLK),
+                libc::EFAULT     => Err(FnctlError::EFAULT),
+                libc::EINTR      => Err(FnctlError::EINTR),
+                libc::EINVAL     => Err(FnctlError::EINVAL),
+                libc::EMFILE     => Err(FnctlError::EMFILE),
+                libc::ENOLCK     => Err(FnctlError::ENOLCK),
+                libc::EPERM      => Err(FnctlError::EPERM),
                 _ => panic!("Unexpected errno: {}", errno)
             };
         }
@@ -161,17 +160,17 @@ impl NbetStream {
             unsafe { libc::free(buffer); }
             let errno = errno().0 as i32;
             return match errno {
-                posix88::ENOMEM         => Err(ReadError::ENOMEM),
-                posix88::EBADF          => Err(ReadError::EBADF),
-                posix88::EFAULT         => Err(ReadError::EFAULT),
-                posix88::EINTR          => Err(ReadError::EINTR),
-                posix88::EINVAL         => Err(ReadError::EINVAL),
-                posix88::EIO            => Err(ReadError::EIO),
-                posix88::EISDIR         => Err(ReadError::EISDIR),
-                posix88::ECONNRESET     => Err(ReadError::ECONNRESET),
+                libc::ENOMEM         => Err(ReadError::ENOMEM),
+                libc::EBADF          => Err(ReadError::EBADF),
+                libc::EFAULT         => Err(ReadError::EFAULT),
+                libc::EINTR          => Err(ReadError::EINTR),
+                libc::EINVAL         => Err(ReadError::EINVAL),
+                libc::EIO            => Err(ReadError::EIO),
+                libc::EISDIR         => Err(ReadError::EISDIR),
+                libc::ECONNRESET     => Err(ReadError::ECONNRESET),
 
                 // These two constants differ between OSes, so we can't use a match clause
-                x if x == posix88::EAGAIN || x == posix88::EWOULDBLOCK => Err(ReadError::EAGAIN),
+                x if x == libc::EAGAIN || x == libc::EWOULDBLOCK => Err(ReadError::EAGAIN),
 
                 _ => panic!("Unexpected errno during read: {}", errno)
             };
@@ -230,22 +229,22 @@ impl NbetStream {
         if num_written < 0 {
             let errno = errno().0 as i32;
             return match errno {
-                posix88::EBADF          => Err(WriteError::EBADF),
-                posix88::EDESTADDRREQ   => Err(WriteError::EDESTADDRREQ),
-                posix88::EDQUOT         => Err(WriteError::EDQUOT),
-                posix88::EFAULT         => Err(WriteError::EFAULT),
-                posix88::EFBIG          => Err(WriteError::EFBIG),
-                posix88::EINTR          => Err(WriteError::EINTR),
-                posix88::EINVAL         => Err(WriteError::EINVAL),
-                posix88::EIO            => Err(WriteError::EIO),
-                posix88::ENOSPC         => Err(WriteError::ENOSPC),
-                posix88::EPIPE          => Err(WriteError::EPIPE),
-                posix88::ECONNRESET     => Err(WriteError::ECONNRESET),
+                libc::EBADF          => Err(WriteError::EBADF),
+                libc::EDESTADDRREQ   => Err(WriteError::EDESTADDRREQ),
+                libc::EDQUOT         => Err(WriteError::EDQUOT),
+                libc::EFAULT         => Err(WriteError::EFAULT),
+                libc::EFBIG          => Err(WriteError::EFBIG),
+                libc::EINTR          => Err(WriteError::EINTR),
+                libc::EINVAL         => Err(WriteError::EINVAL),
+                libc::EIO            => Err(WriteError::EIO),
+                libc::ENOSPC         => Err(WriteError::ENOSPC),
+                libc::EPIPE          => Err(WriteError::EPIPE),
+                libc::ECONNRESET     => Err(WriteError::ECONNRESET),
 
                 // These two constants can have the same value on some systems,
                 // but different values on others, so we can't use a match
                 // clause
-                x if x == posix88::EAGAIN || x == posix88::EWOULDBLOCK =>
+                x if x == libc::EAGAIN || x == libc::EWOULDBLOCK =>
                     Err(WriteError::EAGAIN),
 
                 _ => panic!("Unknown errno during write: {}", errno),
