@@ -7,7 +7,7 @@
 // obtain one at
 // http://mozilla.org/MPL/2.0/.
 
-use std::fmt;
+use std::{fmt, error};
 
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -125,7 +125,7 @@ impl fmt::Display for FnctlError {
             FnctlError::EINVAL => "EINVAL".fmt(f),
             FnctlError::EMFILE => "EMFILE".fmt(f),
             FnctlError::ENOLCK => "ENOLCK".fmt(f),
-            FnctlError::EPERM => "EPERM".fmt(f),
+            FnctlError::EPERM => "EPERM".fmt(f)
         }
     }
 }
@@ -163,6 +163,59 @@ impl fmt::Display for WriteError {
             WriteError::ENOSPC => "ENOSPC".fmt(f),
             WriteError::EPIPE => "EPIPE".fmt(f),
             WriteError::ECONNRESET => "ECONNRESET".fmt(f)
+        }
+    }
+}
+
+impl error::Error for FnctlError {
+    fn description(&self) -> &str {
+        match *self {
+            FnctlError::EAGAIN => "EAGAIN",
+            FnctlError::EBADF => "EBADF",
+            FnctlError::EDEADLK => "EDEADLK",
+            FnctlError::EFAULT => "EFAULT",
+            FnctlError::EINTR => "EINTR",
+            FnctlError::EINVAL => "EINVAL",
+            FnctlError::EMFILE => "EMFILE",
+            FnctlError::ENOLCK => "ENOLCK",
+            FnctlError::EPERM => "EPERM"
+        }
+    }
+}
+
+impl error::Error for ReadError {
+    fn description(&self) -> &str {
+        match *self {
+            ReadError::ENOMEM => "ENOMEM",
+            ReadError::EAGAIN => "EAGAIN",
+            ReadError::EBADF => "EBADF",
+            ReadError::EFAULT => "EFAULT",
+            ReadError::EINTR => "EINTR",
+            ReadError::EINVAL => "EINVAL",
+            ReadError::EIO => "EIO",
+            ReadError::EISDIR => "EISDIR",
+            ReadError::EOF => "EOF",
+            ReadError::ECONNRESET => "ECONNRESET"
+        }
+    }
+}
+
+impl error::Error for WriteError {
+    fn description(&self) -> &str {
+        match *self {
+            WriteError::EAGAIN => "EAGAIN",
+            WriteError::EWOULDBLOCK => "EWOULDBLOCK",
+            WriteError::EBADF => "EBADF",
+            WriteError::EDESTADDRREQ => "EDESTADDRREQ",
+            WriteError::EDQUOT => "EDQUOT",
+            WriteError::EFAULT => "EFAULT",
+            WriteError::EFBIG => "EFBIG",
+            WriteError::EINTR => "EINTR",
+            WriteError::EINVAL => "EINVAL",
+            WriteError::EIO => "EIO",
+            WriteError::ENOSPC => "ENOSPC",
+            WriteError::EPIPE => "EPIPE",
+            WriteError::ECONNRESET => "ECONNRESET"
         }
     }
 }
