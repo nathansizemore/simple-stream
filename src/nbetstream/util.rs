@@ -10,7 +10,7 @@
 use std::fmt;
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum FnctlError {
     /// Operation is prohibited by locks held by other processes.
     EAGAIN,
@@ -38,7 +38,7 @@ pub enum FnctlError {
     EPERM
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ReadError {
     /// System is out of memory
     ENOMEM,
@@ -72,7 +72,7 @@ pub enum ReadError {
     ECONNRESET
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum WriteError {
     /// The file descriptor fd refers to a file other than a socket and has been
     /// marked nonblocking (O_NONBLOCK), and the write would block.
