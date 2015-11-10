@@ -45,7 +45,7 @@ pub type WriteResult = Result<u16, WriteError>;
 
 
 /// States the current stream can be in
-#[derive(PartialEq, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 enum ReadState {
     /// Currently reading the payload length
     PayloadLen,
@@ -54,6 +54,7 @@ enum ReadState {
 }
 
 /// Struct representing a simple messaging protocol over Tcp sockets
+#[derive(Debug)]
 pub struct NbetStream {
     /// Current state
     state: ReadState,

@@ -13,7 +13,7 @@
 
 use super::message::Message;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ReadBuffer {
     /// Current message
     c_msg: Message,
