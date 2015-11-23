@@ -29,10 +29,12 @@ pub type WriteResult = Result<(), Error>;
 /// States the current stream can be in
 #[derive(PartialEq, Clone)]
 enum ReadState {
+    Start,
     /// Currently reading the payload length
     PayloadLen,
     /// Currently reading the payload
-    Payload
+    Payload,
+    End
 }
 
 pub struct Bstream {
@@ -76,12 +78,16 @@ impl Bstream {
             }
 
             if self.buffer.remaining() == 0 {
-                if self.state == ReadState::PayloadLen {
+                if self.state == ReadState::Start {
+                    
+                } else if self.state == ReadState::PayloadLen {
                     self.buffer.calc_payload_len();
                     let p_len = self.buffer.payload_len();
                     self.buffer.set_capacity(p_len);
                     self.state = ReadState::Payload;
-                } else { // Payload completely read
+                } else if self.state == ReadState::Payload { // Payload completely read
+
+                } else if self.state == ReadState::End {
                     self.buffer.reset();
                     self.state = ReadState::PayloadLen;
                     break;
@@ -110,13 +116,14 @@ impl Bstream {
         plen_buf[0] = (plen >> 8) as u8;
         plen_buf[1] = plen as u8;
 
-        let mut n_buffer = Vec::<u8>::with_capacity(buffer.len() + 2);
+        let mut n_buffer = Vec::<u8>::with_capacity(buffer.len() + 4);
+        n_buffer.push(0x01);
         n_buffer.push(plen_buf[0]);
         n_buffer.push(plen_buf[1]);
-
         for x in 0..buffer.len() {
             n_buffer.push(buffer[x]);
         }
+        n_buffer.push(0x17);
 
         match self.stream.write_all(&n_buffer[..]) {
             Ok(()) => {
