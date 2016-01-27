@@ -33,7 +33,7 @@ pub struct Socket {
 }
 
 impl Socket {
-    /// Creates a new socket, with ownership of the `RawFd`
+    /// Creates a new socket with assumed ownership of `fd`
     pub fn new(fd: RawFd) -> Socket {
         Socket {
             fd: fd
