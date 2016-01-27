@@ -2,7 +2,7 @@
 name = "simple-stream"
 version = "0.1.0"
 authors = ["Nathan Sizemore <nathanrsizemore@gmail.com>"]
-description = "Simple messaging protocol built on non-blocking TcpStream"
+description = "Stream crate with simple framing protocol built in"
 readme = "README.md"
 keywords = ["tcp", "non", "blocking", "socket", "stream"]
 license = "MPL-2.0"
@@ -11,5 +11,7 @@ homepage = "https://github.com/nathansizemore/simple-stream"
 documentation = "https://nathansizemore.github.io/simple-stream/simple_stream/index.html"
 
 [dependencies]
+log = "*"
 errno = "*"
 libc = "*"
+openssl = "*"
