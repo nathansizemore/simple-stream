@@ -11,7 +11,7 @@
 //!
 //! ## Data Framing
 //!
-//! ~~~
+//! ```ignore
 //! 0                   1                   2                   3
 //! 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0
 //! +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -24,7 +24,7 @@
 //! Payload Len:    16 bits
 //! Payload Data:   (Payload Len) bytes
 //! End Frame:      8 bits, must be 0x17
-//! ~~~
+//! ```
 
 
 use std::fmt;
