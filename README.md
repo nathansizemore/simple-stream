@@ -16,8 +16,7 @@ extern crate simple_stream as ss;
 use std::net::TcpStream;
 use std::os::unix::io::IntoRawFd;
 
-use ss::socket::Socket;
-use ss::stream::{Stream, SSend, SRecv, StreamShutdown};
+use ss::{Socket, Stream, SSend, SRecv, StreamShutdown};
 use ss::nonblocking::plain::Plain;
 
 
@@ -73,5 +72,5 @@ simple-stream is available under the MPL-2.0 license. See the LICENSE file for m
 
 [q]: https://travis-ci.org/nathansizemore/simple-stream
 [w]: https://nathansizemore.github.io/simple-stream/simple_stream/index.html
-[e]: https://github.com/sfackler/rust-openssl
+[e]: https://nathansizemore.github.io/simple-stream/simple_stream/stream/trait.SStream.html
 [r]: https://github.com/sfackler/rust-openssl
