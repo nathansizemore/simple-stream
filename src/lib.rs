@@ -12,7 +12,7 @@
 //!
 //! ## Usage
 //!
-//! ~~~rust
+//! ```no_run
 //! extern crate simple_stream as ss;
 //!
 //! use std::net::TcpStream;
@@ -59,7 +59,7 @@
 //!         }
 //!     }
 //! }
-//! ~~~
+//! ```
 //!
 //! [e]: https://nathansizemore.github.io/simple-stream/simple_stream/stream/trait.SStream.html
 //! [r]: https://github.com/sfackler/rust-openssl
