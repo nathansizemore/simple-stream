@@ -6,19 +6,44 @@
 // http://mozilla.org/MPL/2.0/.
 
 
+//! The frame module provides a structred way to send and receive
+//! message through streams.
+//!
+//! ## Data Framing
+//!
+//! ~~~
+//! 0                   1                   2                   3
+//! 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0
+//! +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//! | Frame Start |  Payload Len                  |   Payload   |
+//! +-----------------------------------------------------------+
+//! |           Payload Data Continued            |  Frame End  |
+//! +-----------------------------------------------------------+
+//!
+//! Start Frame:    8 bits, must be 0x01
+//! Payload Len:    16 bits
+//! Payload Data:   (Payload Len) bytes
+//! End Frame:      8 bits, must be 0x17
+//! ~~~
+
+
 use std::fmt;
 
 
 /// Indicates start of frame
-pub const START: u8 = 0x01;
+pub const START:    u8 = 0x01;
 /// Indicates end of frame
-pub const END: u8 = 0x17;
+pub const END:      u8 = 0x17;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum FrameState {
+    /// The stream is currently reading for start byte
     Start,
+    /// The stream is currently reading for payload length
     PayloadLen,
+    /// The stream is currently reading the payload
     Payload,
+    /// The stream is currently reading for the end byte
     End,
 }
 
