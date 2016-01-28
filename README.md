@@ -52,7 +52,7 @@ fn main() {
             }
         }
         Err(e) => {
-            println!("Error during write: {}", e);
+            println!("Error during read: {}", e);
             stream.shutdown().unwrap();
         }
     }
