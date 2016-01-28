@@ -62,7 +62,7 @@ pub trait SSend {
 pub trait StreamShutdown {
     /// A call to this function will result in the stream source being shutdown
     /// and `Error` values being returned for any further I/O attempted.
-    fn shutdown(&self) -> Result<(), Error>;
+    fn shutdown(&mut self) -> Result<(), Error>;
 }
 
 /// The `CloneStream` trait allows for specialized cloning of trait objects.
@@ -104,7 +104,7 @@ impl SSend for Stream {
 }
 
 impl StreamShutdown for Stream {
-    fn shutdown(&self) -> Result<(), Error> {
+    fn shutdown(&mut self) -> Result<(), Error> {
         self.inner.shutdown()
     }
 }

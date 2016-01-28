@@ -122,7 +122,7 @@ impl Write for Socket {
 }
 
 impl StreamShutdown for Socket {
-    fn shutdown(&self) -> Result<(), Error> {
+    fn shutdown(&mut self) -> Result<(), Error> {
         let result = unsafe {
             libc::close(self.fd)
         };
