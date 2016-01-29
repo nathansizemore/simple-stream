@@ -6,5 +6,7 @@
 // http://mozilla.org/MPL/2.0/.
 
 
+//! Module containing blocking I/O stream types
+
 pub mod plain;
 pub mod secure;

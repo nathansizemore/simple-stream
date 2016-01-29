@@ -29,6 +29,7 @@ pub trait TcpOptions {
 
 
 #[derive(Clone, Eq, PartialEq)]
+/// Wrapper for file descriptor based sockets
 pub struct Socket {
     fd: RawFd,
 }

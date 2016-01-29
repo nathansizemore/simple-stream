@@ -75,6 +75,7 @@ pub trait CloneStream {
 pub trait SStream: SRecv + SSend + StreamShutdown + CloneStream + AsRawFd {}
 
 
+/// Generic wrapper for anything implementing the `SStream` trait
 pub struct Stream {
     inner: Box<SStream>
 }
