@@ -35,7 +35,7 @@ pub trait SocketOptions {
 }
 
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 /// Wrapper for file descriptor based sockets
 pub struct Socket {
     fd: RawFd,
