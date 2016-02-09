@@ -1,6 +1,6 @@
 [package]
 name = "simple-stream"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Nathan Sizemore <nathanrsizemore@gmail.com>"]
 description = "Stream crate with simple framing protocol built in"
 readme = "README.md"
@@ -14,7 +14,7 @@ documentation = "https://nathansizemore.github.io/simple-stream/simple_stream/in
 name = "simple_stream"
 
 [dependencies]
-log = "0.3.5"
-errno = "0.1.6"
-libc = "0.2.6"
-openssl = "0.7.5"
+log = "*"
+errno = "*"
+libc = "*"
+openssl = "*"
