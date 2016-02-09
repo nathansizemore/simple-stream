@@ -128,6 +128,5 @@ impl<T> CloneStream for T where T: 'static + Clone + SStream {
     }
 }
 
-
 unsafe impl Send for Stream {}
 unsafe impl Sync for Stream {}

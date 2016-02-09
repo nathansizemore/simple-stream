@@ -27,6 +27,13 @@ pub trait TcpOptions {
     fn set_tcp_nodelay(&mut self, nodelay: bool) -> Result<(), Error>;
 }
 
+/// The `SocketOptions` trait allows for various system-level settings
+/// for Berkley Sockets.
+pub trait SocketOptions {
+    /// Sets the `O_NONBLOCK` flag on the underlying fd
+    fn set_nonblocking(&mut self) -> Result<(), Error>;
+}
+
 
 #[derive(Clone, Eq, PartialEq)]
 /// Wrapper for file descriptor based sockets
@@ -78,6 +85,27 @@ impl TcpOptions for Socket {
                              mem::size_of::<c_int>() as u32)
         };
         if opt_result < 0 {
+            return Err(Error::from_raw_os_error(errno().0 as i32));
+        }
+
+        Ok(())
+    }
+}
+
+impl SocketOptions for Socket {
+    fn set_nonblocking(&mut self) -> Result<(), Error> {
+        let result = unsafe {
+            libc::fcntl(self.as_raw_fd(), libc::F_GETFL, 0)
+        };
+        if result < 0 {
+            return Err(Error::from_raw_os_error(errno().0 as i32));
+        }
+
+        let flags = result | libc::O_NONBLOCK;
+        let result = unsafe {
+            libc::fcntl(self.as_raw_fd(), libc::F_SETFL, flags)
+        };
+        if result < 0 {
             return Err(Error::from_raw_os_error(errno().0 as i32));
         }
 
