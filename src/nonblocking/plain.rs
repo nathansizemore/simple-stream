@@ -150,7 +150,6 @@ impl<T: Read + AsRawFd> SRecv for Plain<T> {
             if result.is_err() {
                 let err = result.unwrap_err();
                 if err.kind() == ErrorKind::WouldBlock {
-                    trace!("read received WouldBlock");
                     if self.rx_queue.len() > 0 {
                         return Ok(());
                     }
@@ -159,29 +158,23 @@ impl<T: Read + AsRawFd> SRecv for Plain<T> {
             }
             let num_read = result.unwrap();
 
-            trace!("read: {}bytes", num_read);
-
             buf = self.buf_with_scratch(&buf[..], num_read);
             let len = buf.len();
             let mut seek_pos = 0usize;
 
             if self.state == FrameState::Start {
-                trace!("reading for framestate::start");
                 self.read_for_frame_start(&buf[..], &mut seek_pos, len);
             }
 
             if self.state == FrameState::PayloadLen {
-                trace!("reading for framestate::payloadlen");
                 self.read_payload_len(&buf[..], &mut seek_pos, len);
             }
 
             if self.state == FrameState::Payload {
-                trace!("reading for framestate::payload");
                 self.read_payload(&buf[..], &mut seek_pos, len);
             }
 
             if self.state == FrameState::End {
-                trace!("reading for framestate::end");
                 let result = self.read_for_frame_end(&buf[..], seek_pos, len);
                 if result.is_ok() {
                     self.rx_queue.push(result.unwrap());
@@ -201,25 +194,21 @@ impl<T: Write + AsRawFd> SSend for Plain<T> {
     fn send(&mut self, buf: &[u8]) -> Result<usize, Error> {
         let mut total_written = 0usize;
         self.tx_queue.push(frame::from_slice(buf));
-        trace!("frame pushed to tx queue");
-        trace!("tx_queue.len: {}", self.tx_queue.len());
         for x in 0..self.tx_queue.len() {
             let b = self.tx_queue.remove(x);
             let result = self.inner.write(&b[..]);
             if result.is_err() {
                 let err = result.unwrap_err();
                 if err.kind() == ErrorKind::WouldBlock {
-                    trace!("write received WouldBlock");
                     self.tx_queue.insert(x, b);
+                    return Ok(total_written);
                 }
                 return Err(err);
             }
 
             let num_written = result.unwrap();
-            trace!("wrote: {}bytes", num_written);
             total_written += num_written;
             if num_written < b.len() {
-                trace!("wrote less than buf.len, adding remainder to tx_queue");
                 let remainder = self.vec_from_slice(&b[(b.len() - num_written)..b.len()]);
                 self.tx_queue.insert(x, remainder);
                 return Ok(total_written);
