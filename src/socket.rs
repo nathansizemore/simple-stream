@@ -152,6 +152,13 @@ impl Write for Socket {
 
 impl StreamShutdown for Socket {
     fn shutdown(&mut self) -> Result<(), Error> {
+        let shutdown_result = unsafe {
+            libc::shutdown(self.fd, libc::SHUT_RDWR)
+        };
+        if shutdown_result < 0 {
+            return Err(Error::from_raw_os_error(errno().0 as i32));
+        }
+
         let result = unsafe {
             libc::close(self.fd)
         };

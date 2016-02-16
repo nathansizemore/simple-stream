@@ -1,6 +1,6 @@
 [package]
 name = "simple-stream"
-version = "0.2.4"
+version = "0.2.5"
 authors = ["Nathan Sizemore <nathanrsizemore@gmail.com>"]
 description = "Stream crate with simple framing protocol built in"
 readme = "README.md"
