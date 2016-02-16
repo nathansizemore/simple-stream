@@ -142,9 +142,9 @@ impl<T> Plain<T> {
 impl<T: Read + AsRawFd> SRecv for Plain<T> {
     fn recv(&mut self) -> Result<(), Error> {
         loop {
-            let mut buf = Vec::<u8>::with_capacity(512);
+            let mut buf = Vec::<u8>::with_capacity(1024);
             unsafe {
-                buf.set_len(512);
+                buf.set_len(1024);
             }
             let result = self.inner.read(&mut buf[..]);
             if result.is_err() {
