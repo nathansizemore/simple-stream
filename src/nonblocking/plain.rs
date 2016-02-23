@@ -163,18 +163,22 @@ impl<T: Read + AsRawFd> SRecv for Plain<T> {
             let mut seek_pos = 0usize;
 
             if self.state == FrameState::Start {
+                trace!("Reading for FrameState::Start");
                 self.read_for_frame_start(&buf[..], &mut seek_pos, len);
             }
 
             if self.state == FrameState::PayloadLen {
+                trace!("Reading for FrameState::PayloadLen");
                 self.read_payload_len(&buf[..], &mut seek_pos, len);
             }
 
             if self.state == FrameState::Payload {
+                trace!("Reading for FrameState::Payload");
                 self.read_payload(&buf[..], &mut seek_pos, len);
             }
 
             if self.state == FrameState::End {
+                trace!("Reading for FrameState::End");
                 let result = self.read_for_frame_end(&buf[..], seek_pos, len);
                 if result.is_ok() {
                     self.rx_queue.push(result.unwrap());
