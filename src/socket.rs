@@ -114,18 +114,16 @@ impl SocketOptions for Socket {
 
 impl Read for Socket {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
-        if buf.len() < 1 {
-            return Err(Error::new(ErrorKind::Other, "Invalid buffer"));
-        }
-
-        let result = unsafe { libc::read(self.fd, buf as *mut _ as *mut c_void, buf.len()) };
+        let result = unsafe {
+            libc::read(self.fd, buf as *mut _ as *mut c_void, buf.len())
+        };
 
         if result < 0 {
             return Err(Error::from_raw_os_error(errno().0 as i32));
         }
 
         if result == 0 {
-            return Err(Error::new(ErrorKind::Other, "EOF"));
+            return Err(Error::new(ErrorKind::UnexpectedEof, "UnexpectedEof"));
         }
 
         Ok(result as usize)
