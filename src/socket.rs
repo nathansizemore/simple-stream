@@ -525,8 +525,8 @@ impl SocketOptions for Socket {
             tv_usec: libc::suseconds_t
         };
         let data = Timeval {
-            tv_sec: sec,
-            tv_usec: micro_sec
+            tv_sec: sec as libc::time_t,
+            tv_usec: micro_sec as libc::suseconds_t
         };
 
         let opt_result = unsafe {
