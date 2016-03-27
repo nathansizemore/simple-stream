@@ -14,7 +14,7 @@ documentation = "https://nathansizemore.github.io/simple-stream/simple_stream/in
 name = "simple_stream"
 
 [dependencies]
-log = "0.3.5"
-errno = "0.1.6"
-libc = "0.2.6"
-openssl = "0.7.6"
+log = "*"
+errno = "*"
+libc = "*"
+openssl = "*"
