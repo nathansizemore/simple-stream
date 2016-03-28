@@ -123,7 +123,10 @@ pub trait SocketOptions {
     /// then the operation will never timeout. Timeouts only have effect for system calls that
     /// perform socket I/O (e.g., read(2), recvmsg(2), send(2), sendmsg(2)); timeouts have no
     /// effect for select(2), poll(2), epoll_wait(2), and so on.
-    fn set_rcvtimeo(&mut self, sec: i64, micro_sec: i64) -> Result<(), Error>;
+    fn set_rcvtimeo(&mut self,
+                    sec: libc::time_t,
+                    micro_sec: libc::suseconds_t)
+                    -> Result<(), Error>;
     /// Specify the receiving or sending timeouts until reporting an error. The argument is a
     /// struct timeval. If an input or output function blocks for this period of time, and data
     /// has been sent or received, the return value of that function will be the amount of data
@@ -133,7 +136,10 @@ pub trait SocketOptions {
     /// then the operation will never timeout. Timeouts only have effect for system calls that
     /// perform socket I/O (e.g., read(2), recvmsg(2), send(2), sendmsg(2)); timeouts have no
     /// effect for select(2), poll(2), epoll_wait(2), and so on.
-    fn set_sndtimeo(&mut self, sec: i64, micro_sec: i64) -> Result<(), Error>;
+    fn set_sndtimeo(&mut self,
+                    sec: libc::time_t,
+                    micro_sec: libc::suseconds_t)
+                    -> Result<(), Error>;
     /// Indicates that the rules used in validating addresses supplied in a bind(2) call should
     /// allow reuse of local addresses. For AF_INET sockets this means that a socket may bind,
     /// except when there is an active listening socket bound to the address. When the listening
@@ -493,7 +499,8 @@ impl SocketOptions for Socket {
         Ok(())
     }
 
-    fn set_rcvtimeo(&mut self, sec: i64, micro_sec: i64) -> Result<(), Error> {
+    #[cfg(target_arch = "x86")]
+    fn set_rcvtimeo(&mut self, sec: i32, micro_sec: i32) -> Result<(), Error> {
         #[repr(C, packed)]
         struct Timeval {
             tv_sec: libc::time_t,
@@ -518,15 +525,48 @@ impl SocketOptions for Socket {
         Ok(())
     }
 
-    fn set_sndtimeo(&mut self, sec: i64, micro_sec: i64) -> Result<(), Error> {
+    fn set_rcvtimeo(&mut self,
+                    sec: libc::time_t,
+                    micro_sec: libc::suseconds_t)
+                    -> Result<(), Error>
+    {
         #[repr(C, packed)]
         struct Timeval {
             tv_sec: libc::time_t,
             tv_usec: libc::suseconds_t
         };
         let data = Timeval {
-            tv_sec: sec as libc::time_t,
-            tv_usec: micro_sec as libc::suseconds_t
+            tv_sec: sec,
+            tv_usec: micro_sec
+        };
+
+        let opt_result = unsafe {
+            libc::setsockopt(self.fd,
+                             libc::SOL_SOCKET,
+                             libc::SO_RCVTIMEO,
+                             &data as *const _ as *const c_void,
+                             mem::size_of::<Timeval>() as u32)
+        };
+        if opt_result < 0 {
+            return Err(Error::from_raw_os_error(errno().0 as i32));
+        }
+
+        Ok(())
+    }
+
+    fn set_sndtimeo(&mut self,
+                    sec: libc::time_t,
+                    micro_sec: libc::suseconds_t)
+                    -> Result<(), Error>
+    {
+        #[repr(C, packed)]
+        struct Timeval {
+            tv_sec: libc::time_t,
+            tv_usec: libc::suseconds_t
+        };
+        let data = Timeval {
+            tv_sec: sec,
+            tv_usec: micro_sec
         };
 
         let opt_result = unsafe {
