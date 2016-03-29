@@ -150,9 +150,7 @@ impl<T: Read + AsRawFd> SRecv for Plain<T> {
             if result.is_err() {
                 let err = result.unwrap_err();
                 if err.kind() == ErrorKind::WouldBlock {
-                    if self.rx_queue.len() > 0 {
-                        return Ok(());
-                    }
+                    return Ok(());
                 }
                 return Err(err);
             }
