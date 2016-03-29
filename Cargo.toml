@@ -1,13 +1,12 @@
 [package]
 name = "simple-stream"
-version = "0.3.2"
+version = "0.3.3"
 authors = ["Nathan Sizemore <nathanrsizemore@gmail.com>"]
 description = "Stream crate with simple framing protocol built in"
 readme = "README.md"
-keywords = ["tcp", "non", "blocking", "socket", "stream"]
+keywords = ["socket", "stream", "non", "blocking"]
 license = "MPL-2.0"
 repository = "https://github.com/nathansizemore/simple-stream"
-homepage = "https://github.com/nathansizemore/simple-stream"
 documentation = "https://nathansizemore.github.io/simple-stream/simple_stream/index.html"
 
 [lib]

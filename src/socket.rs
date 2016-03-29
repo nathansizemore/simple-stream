@@ -499,32 +499,6 @@ impl SocketOptions for Socket {
         Ok(())
     }
 
-    #[cfg(target_arch = "x86")]
-    fn set_rcvtimeo(&mut self, sec: i32, micro_sec: i32) -> Result<(), Error> {
-        #[repr(C, packed)]
-        struct Timeval {
-            tv_sec: libc::time_t,
-            tv_usec: libc::suseconds_t
-        };
-        let data = Timeval {
-            tv_sec: sec,
-            tv_usec: micro_sec
-        };
-
-        let opt_result = unsafe {
-            libc::setsockopt(self.fd,
-                             libc::SOL_SOCKET,
-                             libc::SO_RCVTIMEO,
-                             &data as *const _ as *const c_void,
-                             mem::size_of::<Timeval>() as u32)
-        };
-        if opt_result < 0 {
-            return Err(Error::from_raw_os_error(errno().0 as i32));
-        }
-
-        Ok(())
-    }
-
     fn set_rcvtimeo(&mut self,
                     sec: libc::time_t,
                     micro_sec: libc::suseconds_t)
