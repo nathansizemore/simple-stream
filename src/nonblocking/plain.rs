@@ -129,14 +129,6 @@ impl<T> Plain<T> {
         let len = ((self.buffer[1] as u16) << 8) & mask;
         (len | self.buffer[2] as u16) as usize
     }
-
-    fn vec_from_slice(&self, slice: &[u8]) -> Vec<u8> {
-        let mut buf = Vec::<u8>::with_capacity(slice.len());
-        for byte in slice.iter() {
-            buf.push(*byte);
-        }
-        buf
-    }
 }
 
 impl<T: Read + AsRawFd> SRecv for Plain<T> {
@@ -190,28 +182,49 @@ impl<T: Read + AsRawFd> SRecv for Plain<T> {
 
 impl<T: Write + AsRawFd> SSend for Plain<T> {
     fn send(&mut self, buf: &[u8]) -> Result<usize, Error> {
+        // Insert our message into the back of the queue
+        let new_frame = frame::from_slice(buf);
+        self.tx_queue.push(new_frame);
+
+        // Counter for total bytes written
         let mut total_written = 0usize;
-        self.tx_queue.push(frame::from_slice(buf));
-        for x in 0..self.tx_queue.len() {
-            let b = self.tx_queue.remove(x);
-            let result = self.inner.write(&b[..]);
-            if result.is_err() {
-                let err = result.unwrap_err();
+
+        // If there is anything in our tx_queue, we need to finish
+        // writing those first
+        let queue_len = self.tx_queue.len();
+        for _ in 0..queue_len {
+            let frame = self.tx_queue.remove(0);
+            let write_result = self.inner.write(&frame[..]);
+            if write_result.is_err() {
+                let err = write_result.unwrap_err();
                 if err.kind() == ErrorKind::WouldBlock {
-                    self.tx_queue.insert(x, b);
+                    // Internal buffer _completely_ full, nothing was written from frame
+                    self.tx_queue.insert(0, frame);
                     return Ok(total_written);
                 }
                 return Err(err);
             }
 
-            let num_written = result.unwrap();
+            // Something was written to the buffer
+            let num_written = write_result.unwrap();
             total_written += num_written;
-            if num_written < b.len() {
-                let remainder = self.vec_from_slice(&b[(b.len() - num_written)..b.len()]);
-                self.tx_queue.insert(x, remainder);
-                return Ok(total_written);
+
+            // If we wrote less than we expected, we filled up the buffer,
+            // and need to insert the remaining bytes back into the queue to be finished
+            // written out next time the socket sends.
+            let frame_len = frame.len();
+            if num_written < frame_len {
+                let mut remaining_bytes = Vec::<u8>::with_capacity(frame_len - num_written);
+                for offset in num_written..frame_len {
+                    remaining_bytes.push(frame[offset]);
+                }
+
+                // Place unsent bytes back into the front of the queue
+                self.tx_queue.insert(0, remaining_bytes);
+                return Ok(total_written)
             }
         }
+
         Ok(total_written)
     }
 }
