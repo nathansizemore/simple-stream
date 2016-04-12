@@ -6,12 +6,14 @@
 // http://mozilla.org/MPL/2.0/.
 
 
+use std::mem;
 use std::os::unix::io::{RawFd, AsRawFd};
-use std::io::{Read, Write, Error};
+use std::io::{Read, Write, Error, ErrorKind};
 
-use super::super::openssl::ssl::SslStream;
-use super::super::frame::{self, FrameState};
-use super::super::stream::{SRecv, SSend, SStream, StreamShutdown};
+use openssl::ssl::SslStream;
+use openssl::ssl::error::Error as SslStreamError;
+use frame::{self, FrameState};
+use super::{Blocking, NonBlocking};
 
 
 #[derive(Clone)]
@@ -24,7 +26,7 @@ pub struct Secure<T: Read + Write> {
     rx_queue: Vec<Vec<u8>>,
 }
 
-impl<T: Read + Write + AsRawFd + StreamShutdown> Secure<T> {
+impl<T: Read + Write> Secure<T> {
     pub fn new(stream: SslStream<T>) -> Secure<T> {
         Secure {
             inner: stream,
@@ -34,20 +36,6 @@ impl<T: Read + Write + AsRawFd + StreamShutdown> Secure<T> {
             tx_queue: Vec::new(),
             rx_queue: Vec::new()
         }
-    }
-}
-
-impl<T: Read + Write> Secure<T> {
-    fn buf_with_scratch(&mut self, buf: &[u8], len: usize) -> Vec<u8> {
-        let mut new_buf = Vec::<u8>::with_capacity(self.scratch.len() + len);
-        for byte in self.scratch.iter() {
-            new_buf.push(*byte);
-        }
-        self.scratch = Vec::<u8>::new();
-        for x in 0..len {
-            new_buf.push(buf[x]);
-        }
-        new_buf
     }
 
     fn read_for_frame_start(&mut self, buf: &[u8], offset: &mut usize, len: usize) {
@@ -130,6 +118,18 @@ impl<T: Read + Write> Secure<T> {
         Err(())
     }
 
+    fn buf_with_scratch(&mut self, buf: &[u8], len: usize) -> Vec<u8> {
+        let mut new_buf = Vec::<u8>::with_capacity(self.scratch.len() + len);
+        for byte in self.scratch.iter() {
+            new_buf.push(*byte);
+        }
+        self.scratch = Vec::<u8>::new();
+        for x in 0..len {
+            new_buf.push(buf[x]);
+        }
+        new_buf
+    }
+
     fn payload_len(&self) -> usize {
         let mask = 0xFFFFu16;
         let len = ((self.buffer[1] as u16) << 8) & mask;
@@ -137,8 +137,8 @@ impl<T: Read + Write> Secure<T> {
     }
 }
 
-impl<T: Read + Write + AsRawFd> SRecv for Secure<T> {
-    fn recv(&mut self) -> Result<(), Error> {
+impl<T: Read + Write> Blocking for Secure<T> {
+    fn b_recv(&mut self) -> Result<Vec<u8>, Error> {
         loop {
             let mut buf = Vec::<u8>::with_capacity(1024);
             unsafe {
@@ -169,22 +169,13 @@ impl<T: Read + Write + AsRawFd> SRecv for Secure<T> {
             if self.state == FrameState::End {
                 let result = self.read_for_frame_end(&buf[..], seek_pos, len);
                 if result.is_ok() {
-                    self.rx_queue.push(result.unwrap());
-                    return Ok(())
+                    return Ok(result.unwrap());
                 }
             }
         }
     }
 
-    fn drain_rx_queue(&mut self) -> Vec<Vec<u8>> {
-        let buf = self.rx_queue.clone();
-        self.rx_queue = Vec::new();
-        buf
-    }
-}
-
-impl<T: Read + Write + AsRawFd> SSend for Secure<T> {
-    fn send(&mut self, buf: &[u8]) -> Result<usize, Error> {
+    fn b_send(&mut self, buf: &[u8]) -> Result<usize, Error> {
         let b = frame::from_slice(buf);
         let write_result = self.inner.write(&b[..]);
         if write_result.is_err() {
@@ -198,9 +189,108 @@ impl<T: Read + Write + AsRawFd> SSend for Secure<T> {
     }
 }
 
-impl<T: Read + Write + StreamShutdown> StreamShutdown for Secure<T> {
-    fn shutdown(&mut self) -> Result<(), Error> {
-        self.inner.get_mut().shutdown()
+impl<T: Read + Write> NonBlocking for Secure<T> {
+    fn nb_recv(&mut self) -> Result<Vec<Vec<u8>>, Error> {
+        loop {
+            let mut buf = Vec::<u8>::with_capacity(1024);
+            unsafe {
+                buf.set_len(1024);
+            }
+            let result = self.inner.ssl_read(&mut buf[..]);
+            if result.is_err() {
+                let err = result.unwrap_err();
+                match err {
+                    SslStreamError::WantRead(_) => {
+                        if self.rx_queue.len() > 0 {
+                            let new_buf = Vec::<Vec<u8>>::with_capacity(2);
+                            let ret_buf = mem::replace(&mut self.rx_queue, new_buf);
+                            return Ok(ret_buf);
+                        }
+                        return Err(Error::new(ErrorKind::WouldBlock, "SslWantRead"))
+                    }
+                    SslStreamError::WantWrite(_) => {
+                        return Err(Error::new(ErrorKind::WouldBlock, "SslWantWrite"))
+                    }
+                    _ => return Err(Error::new(ErrorKind::Other, "SslRead")),
+                };
+            }
+
+            let num_read = result.unwrap();
+            if num_read == 0 {
+                return Err(Error::new(ErrorKind::UnexpectedEof, "EOF"));
+            }
+
+            buf = self.buf_with_scratch(&buf[..], num_read);
+            let len = buf.len();
+            let mut seek_pos = 0usize;
+
+            if self.state == FrameState::Start {
+                self.read_for_frame_start(&buf[..], &mut seek_pos, len);
+            }
+
+            if self.state == FrameState::PayloadLen {
+                self.read_payload_len(&buf[..], &mut seek_pos, len);
+            }
+
+            if self.state == FrameState::Payload {
+                self.read_payload(&buf[..], &mut seek_pos, len);
+            }
+
+            if self.state == FrameState::End {
+                let result = self.read_for_frame_end(&buf[..], seek_pos, len);
+                if result.is_ok() {
+                    self.rx_queue.push(result.unwrap());
+                }
+            }
+        }
+    }
+
+    fn nb_send(&mut self, buf: &[u8]) -> Result<usize, Error> {
+        // Insert our message into the back of the queue
+        let new_frame = frame::from_slice(buf);
+        self.tx_queue.push(new_frame);
+
+        // Counter for total bytes written
+        let mut total_written = 0usize;
+
+        // If there is anything in our tx_queue, we need to finish
+        // writing those first
+        let queue_len = self.tx_queue.len();
+        for _ in 0..queue_len {
+            let frame = self.tx_queue.remove(0);
+            let write_result = self.inner.ssl_write(&frame[..]);
+            if write_result.is_err() {
+                let err = write_result.unwrap_err();
+                match err {
+                    SslStreamError::WantWrite(_) => {
+                        self.tx_queue.insert(0, frame);
+                        return Ok(total_written);
+                    }
+                    _ => return Err(Error::new(ErrorKind::Other, "SslError"))
+                };
+            }
+
+            // Something was written to the buffer
+            let num_written = write_result.unwrap();
+            total_written += num_written;
+
+            // If we wrote less than we expected, we filled up the buffer,
+            // and need to insert the remaining bytes back into the queue to be finished
+            // written out next time the socket sends.
+            let frame_len = frame.len();
+            if num_written < frame_len {
+                let mut remaining_bytes = Vec::<u8>::with_capacity(frame_len - num_written);
+                for offset in num_written..frame_len {
+                    remaining_bytes.push(frame[offset]);
+                }
+
+                // Place unsent bytes back into the front of the queue
+                self.tx_queue.insert(0, remaining_bytes);
+                return Ok(total_written)
+            }
+        }
+
+        Ok(total_written)
     }
 }
 
@@ -209,5 +299,3 @@ impl<T: Read + Write + AsRawFd> AsRawFd for Secure<T> {
         self.inner.as_raw_fd()
     }
 }
-
-impl<T: 'static + Read + Write + AsRawFd + Clone + Send + StreamShutdown> SStream for Secure<T> {}
