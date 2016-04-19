@@ -86,11 +86,11 @@ pub fn from_raw_parts(buf: &mut Vec<u8>) -> Option<Vec<u8>> {
     }
 
     let mut ret_buf = Vec::<u8>::with_capacity(payload_len);
-    ret_buf.extend_from_slice(&buf[3..payload_len]);
+    ret_buf.extend_from_slice(&buf[3..(payload_len + 3)]);
 
     let buf_len = buf.len();
     let mut remaining_buf = Vec::<u8>::with_capacity(buf.len() - (payload_len + 4));
-    remaining_buf.extend_from_slice(&buf[(payload_len + 3)..buf_len]);
+    remaining_buf.extend_from_slice(&buf[(payload_len + 4)..buf_len]);
     mem::swap(buf, &mut remaining_buf);
 
     trace!("Complete frame read");
