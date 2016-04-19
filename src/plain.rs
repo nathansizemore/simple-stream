@@ -7,6 +7,7 @@
 
 
 use std::mem;
+use std::os::unix::io::{RawFd, AsRawFd};
 use std::io::{Read, Write, Error, ErrorKind};
 
 use frame;
@@ -30,6 +31,40 @@ impl<T: Read + Write> Plain<T> {
             rx_buf: Vec::<u8>::with_capacity(BUF_SIZE),
             tx_buf: Vec::<u8>::with_capacity(BUF_SIZE)
         }
+    }
+}
+
+impl<T: Read + Write> Blocking for Plain<T> {
+    fn b_recv(&mut self) -> Result<Vec<u8>, Error> {
+        loop {
+            let mut buf = [0u8; BUF_SIZE];
+            let read_result = self.inner.read(&mut buf);
+            if read_result.is_err() {
+                let err = read_result.unwrap_err();
+                return Err(err);
+            }
+
+            let num_read = read_result.unwrap();
+            self.rx_buf.extend_from_slice(&buf[0..num_read]);
+
+            match frame::from_raw_parts(&mut self.rx_buf) {
+                Some(frame) => {
+                    return Ok(frame);
+                }
+                None => { }
+            };
+        }
+    }
+
+    fn b_send(&mut self, buf: &[u8]) -> Result<(), Error> {
+        let frame = frame::new(buf);
+        let write_result = self.inner.write(&frame[..]);
+        if write_result.is_err() {
+            let err = write_result.unwrap_err();
+            return Err(err);
+        }
+
+        Ok(())
     }
 }
 
@@ -93,36 +128,8 @@ impl<T: Read + Write> NonBlocking for Plain<T> {
     }
 }
 
-impl<T: Read + Write> Blocking for Plain<T> {
-    fn b_recv(&mut self) -> Result<Vec<u8>, Error> {
-        loop {
-            let mut buf = [0u8; BUF_SIZE];
-            let read_result = self.inner.read(&mut buf);
-            if read_result.is_err() {
-                let err = read_result.unwrap_err();
-                return Err(err);
-            }
-
-            let num_read = read_result.unwrap();
-            self.rx_buf.extend_from_slice(&buf[0..num_read]);
-
-            match frame::from_raw_parts(&mut self.rx_buf) {
-                Some(frame) => {
-                    return Ok(frame);
-                }
-                None => { }
-            };
-        }
-    }
-
-    fn b_send(&mut self, buf: &[u8]) -> Result<(), Error> {
-        let frame = frame::new(buf);
-        let write_result = self.inner.write(&frame[..]);
-        if write_result.is_err() {
-            let err = write_result.unwrap_err();
-            return Err(err);
-        }
-
-        Ok(())
+impl<T: Read + Write + AsRawFd> AsRawFd for Plain<T> {
+    fn as_raw_fd(&self) -> RawFd {
+        self.inner.as_raw_fd()
     }
 }
