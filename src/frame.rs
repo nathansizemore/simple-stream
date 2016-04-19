@@ -15,9 +15,9 @@
 //! 0                   1                   2                   3
 //! 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0
 //! +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//! | Frame Start |  Payload Len                  |   Payload   |
+//! | Frame Start   |  Payload Len                  |  Payload  |
 //! +-----------------------------------------------------------+
-//! |           Payload Data Continued            |  Frame End  |
+//! |           Payload Data Continued          |   Frame End   |
 //! +-----------------------------------------------------------+
 //!
 //! Start Frame:    8 bits, must be 0x01
@@ -27,46 +27,55 @@
 //! ```
 
 
-use std::fmt;
+use std::mem;
 
 
-/// Indicates start of frame
-pub const START:    u8 = 0x01;
-/// Indicates end of frame
-pub const END:      u8 = 0x17;
+pub const START_BYTE:    u8 = 0x01;
+pub const END_BYTE:      u8 = 0x17;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum FrameState {
-    /// The stream is currently reading for start byte
-    Start,
-    /// The stream is currently reading for payload length
-    PayloadLen,
-    /// The stream is currently reading the payload
-    Payload,
-    /// The stream is currently reading for the end byte
-    End,
+
+pub fn new(buf: &[u8]) -> Vec<u8> {
+    let buf_len = buf.len() as u16;
+    let mut ret_buf = Vec::<u8>::with_capacity(buf.len() + 4);
+
+    ret_buf.push(START_BYTE);
+    ret_buf.push((buf_len >> 8) as u8);
+    ret_buf.push(buf_len as u8);
+    ret_buf.extend_from_slice(buf);
+    ret_buf.push(END_BYTE);
+
+    ret_buf
 }
 
-impl fmt::Display for FrameState {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            FrameState::Start => "Start".fmt(f),
-            FrameState::PayloadLen => "PayloadLen".fmt(f),
-            FrameState::Payload => "Payload".fmt(f),
-            FrameState::End => "End".fmt(f),
-        }
+pub fn from_raw_parts(buf: &mut Vec<u8>) -> Option<Vec<u8>> {
+    if buf[0] != START_BYTE {
+        let mut new_buf = Vec::<u8>::with_capacity(1024);
+        mem::swap(&mut new_buf, buf);
+        return None;
     }
-}
 
-pub fn from_slice(slice: &[u8]) -> Vec<u8> {
-    let len = slice.len() as u16;
-    let mut buf = Vec::<u8>::with_capacity(slice.len() + 4);
-    buf.push(START);
-    buf.push((len >> 8) as u8);
-    buf.push(len as u8);
-    for byte in slice.iter() {
-        buf.push(*byte);
+    let mask = 0xFFFFu16;
+    let mut payload_len = ((buf[1] as u16) << 8) & mask;
+    payload_len |= buf[2] as u16;
+
+    let payload_len = payload_len as usize;
+    if (buf.len() - 4) < payload_len {
+        return None;
     }
-    buf.push(END);
-    buf
+
+    if buf[payload_len] != END_BYTE {
+        let mut new_buf = Vec::<u8>::with_capacity(1024);
+        mem::swap(&mut new_buf, buf);
+        return None;
+    }
+
+    let mut ret_buf = Vec::<u8>::with_capacity(payload_len);
+    ret_buf.extend_from_slice(&buf[3..payload_len]);
+
+    let buf_len = buf.len();
+    let mut remaining_buf = Vec::<u8>::with_capacity(buf.len() - (payload_len + 4));
+    remaining_buf.extend_from_slice(&buf[payload_len..buf_len]);
+    mem::swap(buf, &mut remaining_buf);
+
+    Some(ret_buf)
 }
