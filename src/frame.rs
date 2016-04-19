@@ -64,6 +64,7 @@ pub fn from_raw_parts(buf: &mut Vec<u8>) -> Option<Vec<u8>> {
     let mut payload_len = ((buf[1] as u16) << 8) & mask;
     payload_len |= buf[2] as u16;
 
+    trace!("buf.len: {}", buf.len());
     trace!("Payload Len: {}", payload_len);
 
     let payload_len = payload_len as usize;
