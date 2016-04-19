@@ -77,6 +77,7 @@ impl<T: Read + Write> NonBlocking for Plain<T> {
             if read_result.is_err() {
                 let err = read_result.unwrap_err();
                 if err.kind() == ErrorKind::WouldBlock {
+                    trace!("Received WouldBlock");
                     break;
                 }
                 return Err(err);

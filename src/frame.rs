@@ -38,9 +38,6 @@ pub fn new(buf: &[u8]) -> Vec<u8> {
     let mut ret_buf = Vec::<u8>::with_capacity(buf.len() + 4);
     let buf_len = buf.len() as u16;
 
-    trace!("new buf.len: {}", buf.len());
-    trace!("payload_len: {}", buf_len);
-
     ret_buf.push(START_BYTE);
     ret_buf.push((buf_len >> 8) as u8);
     ret_buf.push(buf_len as u8);
@@ -51,13 +48,13 @@ pub fn new(buf: &[u8]) -> Vec<u8> {
 }
 
 pub fn from_raw_parts(buf: &mut Vec<u8>) -> Option<Vec<u8>> {
+    // Buffer not large enough to make it worth processing
     if buf.len() < 5 {
-        trace!("buf.len not large enough to process");
         return None;
     }
 
     if buf[0] != START_BYTE {
-        trace!("buf[0] was not START_BYTE");
+        trace!("buf[0] was not START_BYTE. Swapping for a fresh buffer");
         let mut new_buf = Vec::<u8>::with_capacity(1024);
         mem::swap(&mut new_buf, buf);
         return None;
@@ -67,14 +64,8 @@ pub fn from_raw_parts(buf: &mut Vec<u8>) -> Option<Vec<u8>> {
     let mut payload_len = ((buf[1] as u16) << 8) & mask;
     payload_len |= buf[2] as u16;
 
-    trace!("buf.len: {}", buf.len());
-    trace!("Payload Len: {}", payload_len);
-
     let payload_len = payload_len as usize;
     if (buf.len() - 4) < payload_len {
-        trace!("Not enough in buf for expected payload\nExpected: {}\nActual: {}",
-               payload_len,
-               (buf.len() - 4));
         return None;
     }
 
@@ -92,8 +83,6 @@ pub fn from_raw_parts(buf: &mut Vec<u8>) -> Option<Vec<u8>> {
     let mut remaining_buf = Vec::<u8>::with_capacity(buf.len() - (payload_len + 4));
     remaining_buf.extend_from_slice(&buf[(payload_len + 4)..buf_len]);
     mem::swap(buf, &mut remaining_buf);
-
-    trace!("Complete frame read");
 
     Some(ret_buf)
 }
