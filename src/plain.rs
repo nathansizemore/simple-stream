@@ -18,6 +18,7 @@ use super::{Blocking, NonBlocking};
 const BUF_SIZE: usize = 1024;
 
 
+#[derive(Clone)]
 pub struct Plain<T: Read + Write> {
     inner: T,
     rx_buf: Vec<u8>,
