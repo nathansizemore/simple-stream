@@ -75,7 +75,7 @@ pub fn from_raw_parts(buf: &mut Vec<u8>) -> Option<Vec<u8>> {
         return None;
     }
 
-    if buf[payload_len] != END_BYTE {
+    if buf[payload_len + 3] != END_BYTE {
         trace!("END_BYTE was not at expected location. Swapping for a fresh buffer");
         let mut new_buf = Vec::<u8>::with_capacity(1024);
         mem::swap(&mut new_buf, buf);
