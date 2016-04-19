@@ -20,6 +20,7 @@ use super::{Blocking, NonBlocking};
 const BUF_SIZE: usize = 1024;
 
 
+#[derive(Clone)]
 pub struct Secure<T: Read + Write> {
     inner: SslStream<T>,
     rx_buf: Vec<u8>,
