@@ -27,7 +27,6 @@ pub struct Secure<T: Read + Write> {
     tx_buf: Vec<u8>
 }
 
-
 impl<T: Read + Write> Secure<T> {
     pub fn new(stream: SslStream<T>) -> Secure<T> {
         Secure {
