@@ -35,8 +35,11 @@ pub const END_BYTE:      u8 = 0x17;
 
 
 pub fn new(buf: &[u8]) -> Vec<u8> {
-    let buf_len = buf.len() as u16;
     let mut ret_buf = Vec::<u8>::with_capacity(buf.len() + 4);
+    let buf_len = buf.len() as u16;
+
+    trace!("new buf.len: {}", buf.len());
+    trace!("payload_len: {}", buf_len);
 
     ret_buf.push(START_BYTE);
     ret_buf.push((buf_len >> 8) as u8);

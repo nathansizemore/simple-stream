@@ -60,7 +60,12 @@ impl<T: Read + Write> Blocking for Secure<T> {
     }
 
     fn b_send(&mut self, buf: &[u8]) -> Result<(), Error> {
+        trace!("b_send with buf.len(): {}", buf.len());
+
         let frame = frame::new(buf);
+
+        trace!("Writing frame of length: {}", frame.len());
+
         let write_result = self.inner.write(&frame[..]);
         if write_result.is_err() {
             let err = write_result.unwrap_err();
