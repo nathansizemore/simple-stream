@@ -103,7 +103,10 @@ impl<T: Read + Write> NonBlocking for Plain<T> {
         let frame = frame::new(buf);
         self.tx_buf.extend_from_slice(&frame[..]);
 
-        let write_result = self.inner.write(&self.tx_buf[..]);
+        let mut out_buf = Vec::<u8>::with_capacity(BUF_SIZE);
+        mem::swap(&mut self.tx_buf, &mut out_buf);
+
+        let write_result = self.inner.write(&out_buf[..]);
         if write_result.is_err() {
             let err = write_result.unwrap_err();
             return Err(err);
@@ -114,14 +117,9 @@ impl<T: Read + Write> NonBlocking for Plain<T> {
             return Err(Error::new(ErrorKind::Other, "Write returned zero"));
         }
 
-        if num_written < self.tx_buf.len() {
-            let tx_buf_len = self.tx_buf.len();
-            let remaining_len = self.tx_buf.len() - num_written;
-
-            let mut buf = Vec::<u8>::with_capacity(remaining_len);
-            buf.extend_from_slice(&self.tx_buf[num_written..tx_buf_len]);
-
-            mem::swap(&mut buf, &mut self.tx_buf);
+        if num_written < out_buf.len() {
+            let out_buf_len = out_buf.len();
+            self.tx_buf.extend_from_slice(&out_buf[num_written..out_buf_len]);
 
             return Err(Error::new(ErrorKind::WouldBlock, "WouldBlock"));
         }
