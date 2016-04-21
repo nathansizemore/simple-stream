@@ -77,7 +77,6 @@ impl<T: Read + Write> NonBlocking for Plain<T> {
             if read_result.is_err() {
                 let err = read_result.unwrap_err();
                 if err.kind() == ErrorKind::WouldBlock {
-                    trace!("Received WouldBlock");
                     break;
                 }
                 return Err(err);
@@ -116,6 +115,11 @@ impl<T: Read + Write> NonBlocking for Plain<T> {
         if num_written == 0 {
             return Err(Error::new(ErrorKind::Other, "Write returned zero"));
         }
+
+        trace!("Xx Write Results xX");
+        trace!("Attempt: {}", out_buf.len());
+        trace!("Actual: ", num_written);
+        trace!("XxxxxxxxxxxxxxxxxxX");
 
         if num_written < out_buf.len() {
             let out_buf_len = out_buf.len();
