@@ -48,7 +48,7 @@ impl<T: Read + Write> Blocking for Plain<T> {
             let num_read = read_result.unwrap();
             self.rx_buf.extend_from_slice(&buf[0..num_read]);
 
-            match frame::from_raw_parts(&mut self.rx_buf) {
+            match frame::simple::from_raw_parts(&mut self.rx_buf) {
                 Some(frame) => {
                     return Ok(frame);
                 }
@@ -58,7 +58,7 @@ impl<T: Read + Write> Blocking for Plain<T> {
     }
 
     fn b_send(&mut self, buf: &[u8]) -> Result<(), Error> {
-        let frame = frame::new(buf);
+        let frame = frame::simple::new(buf);
         let write_result = self.inner.write(&frame[..]);
         if write_result.is_err() {
             let err = write_result.unwrap_err();
@@ -87,7 +87,7 @@ impl<T: Read + Write> NonBlocking for Plain<T> {
         }
 
         let mut ret_buf = Vec::<Vec<u8>>::with_capacity(5);
-        while let Some(frame) = frame::from_raw_parts(&mut self.rx_buf) {
+        while let Some(frame) = frame::simple::from_raw_parts(&mut self.rx_buf) {
             ret_buf.push(frame);
         }
 
@@ -99,7 +99,7 @@ impl<T: Read + Write> NonBlocking for Plain<T> {
     }
 
     fn nb_send(&mut self, buf: &[u8]) -> Result<(), Error> {
-        let frame = frame::new(buf);
+        let frame = frame::simple::new(buf);
         self.tx_buf.extend_from_slice(&frame[..]);
 
         let mut out_buf = Vec::<u8>::with_capacity(BUF_SIZE);
@@ -115,11 +115,6 @@ impl<T: Read + Write> NonBlocking for Plain<T> {
         if num_written == 0 {
             return Err(Error::new(ErrorKind::Other, "Write returned zero"));
         }
-
-        trace!("Xx Write Results xX");
-        trace!("Attempt: {}", out_buf.len());
-        trace!("Actual: ", num_written);
-        trace!("XxxxxxxxxxxxxxxxxxX");
 
         if num_written < out_buf.len() {
             let out_buf_len = out_buf.len();

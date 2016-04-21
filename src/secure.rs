@@ -50,7 +50,7 @@ impl<T: Read + Write> Blocking for Secure<T> {
             let num_read = read_result.unwrap();
             self.rx_buf.extend_from_slice(&buf[0..num_read]);
 
-            match frame::from_raw_parts(&mut self.rx_buf) {
+            match frame::simple::from_raw_parts(&mut self.rx_buf) {
                 Some(frame) => {
                     return Ok(frame);
                 }
@@ -60,7 +60,7 @@ impl<T: Read + Write> Blocking for Secure<T> {
     }
 
     fn b_send(&mut self, buf: &[u8]) -> Result<(), Error> {
-        let frame = frame::new(buf);
+        let frame = frame::simple::new(buf);
         let write_result = self.inner.write(&frame[..]);
         if write_result.is_err() {
             let err = write_result.unwrap_err();
@@ -113,7 +113,7 @@ impl<T: Read + Write> NonBlocking for Secure<T> {
         }
 
         let mut ret_buf = Vec::<Vec<u8>>::with_capacity(5);
-        while let Some(frame) = frame::from_raw_parts(&mut self.rx_buf) {
+        while let Some(frame) = frame::simple::from_raw_parts(&mut self.rx_buf) {
             ret_buf.push(frame);
         }
 
@@ -125,7 +125,7 @@ impl<T: Read + Write> NonBlocking for Secure<T> {
     }
 
     fn nb_send(&mut self, buf: &[u8]) -> Result<(), Error> {
-        let frame = frame::new(buf);
+        let frame = frame::simple::new(buf);
         self.tx_buf.extend_from_slice(&frame[..]);
 
         let mut out_buf = Vec::<u8>::with_capacity(BUF_SIZE);
