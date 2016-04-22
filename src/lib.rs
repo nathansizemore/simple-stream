@@ -20,6 +20,7 @@ use std::io::Error;
 pub use plain::*;
 pub use socket::*;
 pub use secure::*;
+pub use frame::{simple, websocket};
 
 mod frame;
 mod socket;
@@ -37,17 +38,3 @@ pub trait NonBlocking {
     fn nb_recv(&mut self) -> Result<Vec<Vec<u8>>, Error>;
     fn nb_send(&mut self, buf: &[u8]) -> Result<(), Error>;
 }
-
-*  %x0 denotes a continuation frame
-
-      *  %x1 denotes a text frame
-
-      *  %x2 denotes a binary frame
-
-      *  %x3-7 are reserved for further non-control frames
-
-      *  %x8 denotes a connection close
-
-      *  %x9 denotes a ping
-
-      *  %xA denotes a pong
