@@ -20,10 +20,10 @@
 //! |           Payload Data Continued          |   Frame End   |
 //! +-----------------------------------------------------------+
 //!
-//! Start Frame:    8 bits, must be 0x01
+//! Start Frame:    8 bits (must be 0x01)
 //! Payload Len:    16 bits
-//! Payload Data:   (Payload Len) bytes
-//! End Frame:      8 bits, must be 0x17
+//! Payload Data:   Payload Len bytes
+//! End Frame:      8 bits (must be 0x17)
 //! ```
 
 
@@ -42,7 +42,7 @@ bitflags! {
 }
 
 #[derive(Clone)]
-struct SimpleFrame {
+pub struct SimpleFrame {
     start_guard: FrameGuard,
     payload_len: u16,
     payload: Vec<u8>,

@@ -21,9 +21,8 @@ use std::any::Any;
 pub use plain::*;
 pub use socket::*;
 pub use secure::*;
-pub use frame::{simple, websocket};
 
-mod frame;
+pub mod frame;
 mod socket;
 mod plain;
 mod secure;

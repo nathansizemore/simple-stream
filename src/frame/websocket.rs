@@ -76,6 +76,20 @@ impl WebSocketFrame {
     pub fn frame_type(&self) -> FrameType {
         self.frame_type.clone()
     }
+
+    pub fn is_masked(&self) -> bool {
+        self.header.mask
+    }
+
+    pub fn to_bytes_unmasked(&self) -> Vec<u8> {
+        let len = self.payload.data.len();
+        let mut buf = Vec::<u8>::with_capacity(len);
+        for x in 0..len {
+            buf.push(self.payload.data[x] ^ self.header.masking_key[x % 4]);
+        }
+
+        buf
+    }
 }
 
 impl Frame for WebSocketFrame {
