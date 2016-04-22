@@ -61,8 +61,19 @@ impl Frame for SimpleFrame {
         }
     }
 
-    fn to_bytes(&self) -> Vec<u8> {
+    fn payload(&self) -> Vec<u8> {
         self.payload.clone()
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut buf = Vec::<u8>::with_capacity(self.len_as_vec());
+        buf.push(self.start_guard.bits());
+        buf.push((self.payload_len >> 8) as u8);
+        buf.push(self.payload_len as u8);
+        buf.extend_from_slice(&self.payload[..]);
+        buf.push(self.end_guard.bits());
+
+        buf
     }
 
     fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<Self>> {

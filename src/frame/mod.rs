@@ -16,6 +16,7 @@ pub mod websocket;
 pub trait Frame {
     fn new<T: Any>(buf: &[u8], args: &Vec<T>) -> Self;
     fn to_bytes(&self) -> Vec<u8>;
+    fn payload(&self) -> Vec<u8>;
     fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<Self>>;
     fn len_as_vec(&self) -> usize;
 }

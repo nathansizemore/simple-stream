@@ -81,7 +81,7 @@ impl WebSocketFrame {
         self.header.mask
     }
 
-    pub fn to_bytes_unmasked(&self) -> Vec<u8> {
+    pub fn payload_unmasked(&self) -> Vec<u8> {
         let len = self.payload.data.len();
         let mut buf = Vec::<u8>::with_capacity(len);
         for x in 0..len {
@@ -118,6 +118,14 @@ impl Frame for WebSocketFrame {
             payload: Payload {
                 data: buf.to_vec()
             }
+        }
+    }
+
+    fn payload(&self) -> Vec<u8> {
+        if self.header.mask {
+            self.payload_unmasked()
+        } else {
+            self.payload.data.clone()
         }
     }
 
