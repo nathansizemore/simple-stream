@@ -37,7 +37,7 @@ use super::Frame;
 bitflags! {
     flags FrameGuard: u8 {
         const START     = 0b0000_0001,
-        const END       = 0b0000_1111
+        const END       = 0b0001_0111
     }
 }
 
