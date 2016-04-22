@@ -97,7 +97,7 @@ impl Frame for SimpleFrame {
         frame.payload_len = payload_len;
 
         let payload_len = payload_len as usize;
-        if buf.len() < payload_len + 4 {
+        if buf.len() - 4 < payload_len {
             return None;
         }
 
@@ -105,7 +105,7 @@ impl Frame for SimpleFrame {
         frame.payload.extend_from_slice(&buf[3..(payload_len + 3)]);
 
         // Ending frame guard
-        let last_byte = FrameGuard::from_bits(buf[payload_len + 4]).unwrap();
+        let last_byte = FrameGuard::from_bits(buf[payload_len + 3]).unwrap();
         if last_byte.bits() != START.bits() {
             error!("Last byte was not expected end byte. Buffer corrupted?");
             return None;
