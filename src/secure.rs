@@ -7,13 +7,14 @@
 
 
 use std::mem;
+use std::any::Any;
 use std::os::unix::io::{RawFd, AsRawFd};
 use std::io::{Read, Write, Error, ErrorKind};
 
 use openssl::ssl::SslStream;
 use openssl::ssl::error::Error as SslStreamError;
 
-use frame;
+use frame::Frame;
 use super::{Blocking, NonBlocking};
 
 
@@ -21,23 +22,34 @@ const BUF_SIZE: usize = 1024;
 
 
 #[derive(Clone)]
-pub struct Secure<T: Read + Write> {
-    inner: SslStream<T>,
+pub struct Secure<S, F> where
+    S: Read + Write,
+    F: Frame
+{
+    inner: SslStream<S>,
+    frame: F,
     rx_buf: Vec<u8>,
     tx_buf: Vec<u8>
 }
 
-impl<T: Read + Write> Secure<T> {
-    pub fn new(stream: SslStream<T>) -> Secure<T> {
+impl<S, F> Secure<S, F> where
+    S: Read + Write,
+    F: Frame
+{
+    pub fn new(stream: SslStream<S>, frame: F) -> Secure<S, F> {
         Secure {
             inner: stream,
+            frame: frame,
             rx_buf: Vec::<u8>::with_capacity(BUF_SIZE),
             tx_buf: Vec::<u8>::with_capacity(BUF_SIZE)
         }
     }
 }
 
-impl<T: Read + Write> Blocking for Secure<T> {
+impl<S, F> Blocking for Secure<S, F> where
+    S: Read + Write,
+    F: Frame
+{
     fn b_recv(&mut self) -> Result<Vec<u8>, Error> {
         loop {
             let mut buf = [0u8; BUF_SIZE];
@@ -50,18 +62,19 @@ impl<T: Read + Write> Blocking for Secure<T> {
             let num_read = read_result.unwrap();
             self.rx_buf.extend_from_slice(&buf[0..num_read]);
 
-            match frame::simple::from_raw_parts(&mut self.rx_buf) {
-                Some(frame) => {
-                    return Ok(frame);
+            match F::from_bytes(&mut self.rx_buf) {
+                Some(boxed_frame) => {
+                    return Ok(boxed_frame.to_bytes());
                 }
                 None => { }
             };
         }
     }
 
-    fn b_send(&mut self, buf: &[u8]) -> Result<(), Error> {
-        let frame = frame::simple::new(buf);
-        let write_result = self.inner.write(&frame[..]);
+    fn b_send<T: Any>(&mut self, buf: &[u8], args: &Vec<T>) -> Result<(), Error> {
+        let frame = F::new(buf, args);
+        let out_buf = frame.to_bytes();
+        let write_result = self.inner.write(&out_buf[..]);
         if write_result.is_err() {
             let err = write_result.unwrap_err();
             return Err(err);
@@ -71,7 +84,10 @@ impl<T: Read + Write> Blocking for Secure<T> {
     }
 }
 
-impl<T: Read + Write> NonBlocking for Secure<T> {
+impl<S, F> NonBlocking for Secure<S, F> where
+    S: Read + Write,
+    F: Frame
+{
     fn nb_recv(&mut self) -> Result<Vec<Vec<u8>>, Error> {
         loop {
             let mut buf = [0u8; BUF_SIZE];
@@ -113,8 +129,8 @@ impl<T: Read + Write> NonBlocking for Secure<T> {
         }
 
         let mut ret_buf = Vec::<Vec<u8>>::with_capacity(5);
-        while let Some(frame) = frame::simple::from_raw_parts(&mut self.rx_buf) {
-            ret_buf.push(frame);
+        while let Some(boxed_frame) = F::from_bytes(&mut self.rx_buf) {
+            ret_buf.push(boxed_frame.to_bytes());
         }
 
         if ret_buf.len() > 0 {
@@ -124,9 +140,9 @@ impl<T: Read + Write> NonBlocking for Secure<T> {
         Err(Error::new(ErrorKind::WouldBlock, "WouldBlock"))
     }
 
-    fn nb_send(&mut self, buf: &[u8]) -> Result<(), Error> {
-        let frame = frame::simple::new(buf);
-        self.tx_buf.extend_from_slice(&frame[..]);
+    fn nb_send<T: Any>(&mut self, buf: &[u8], args: &Vec<T>) -> Result<(), Error> {
+        let frame = F::new(buf, args);
+        self.tx_buf.extend_from_slice(&frame.to_bytes()[..]);
 
         let mut out_buf = Vec::<u8>::with_capacity(BUF_SIZE);
         mem::swap(&mut self.tx_buf, &mut out_buf);
@@ -177,7 +193,10 @@ impl<T: Read + Write> NonBlocking for Secure<T> {
     }
 }
 
-impl<T: Read + Write + AsRawFd> AsRawFd for Secure<T> {
+impl<S, F> AsRawFd for Secure<S, F> where
+    S: Read + Write + AsRawFd,
+    F: Frame
+{
     fn as_raw_fd(&self) -> RawFd {
         self.inner.as_raw_fd()
     }

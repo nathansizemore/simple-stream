@@ -13,7 +13,6 @@ use std::default::Default;
 use super::Frame;
 
 
-
 bitflags! {
     flags OpCode: u8 {
         const CONTINUATION  = 0b0000_0000,
@@ -76,33 +75,6 @@ impl WebSocketFrame {
 
     pub fn frame_type(&self) -> FrameType {
         self.frame_type.clone()
-    }
-
-    fn len_as_vec(&self) -> usize {
-        let mut len = 0usize;
-
-        // OpCode
-        len += 1;
-
-        // Mask and paylaod length
-        len += 1;
-
-        // Extended Payload length
-        if self.header.payload_len > 125 && self.header.payload_len < u16::MAX as u64 {
-            len += 2;
-        } else if self.header.payload_len > u16::MAX as u64 {
-            len += 8;
-        }
-
-        // Optional masking key
-        if self.header.mask {
-            len += 4;
-        }
-
-        // Payload data
-        len += self.header.payload_len as usize;
-
-        len
     }
 }
 
@@ -268,6 +240,33 @@ impl Frame for WebSocketFrame {
         frame.payload.data.extend_from_slice(&buf[next_offset..len]);
 
         Some(Box::new(frame))
+    }
+
+    fn len_as_vec(&self) -> usize {
+        let mut len = 0usize;
+
+        // OpCode
+        len += 1;
+
+        // Mask and paylaod length
+        len += 1;
+
+        // Extended Payload length
+        if self.header.payload_len > 125 && self.header.payload_len < u16::MAX as u64 {
+            len += 2;
+        } else if self.header.payload_len > u16::MAX as u64 {
+            len += 8;
+        }
+
+        // Optional masking key
+        if self.header.mask {
+            len += 4;
+        }
+
+        // Payload data
+        len += self.header.payload_len as usize;
+
+        len
     }
 }
 

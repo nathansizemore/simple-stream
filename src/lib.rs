@@ -16,6 +16,7 @@ extern crate openssl;
 extern crate bitflags;
 
 use std::io::Error;
+use std::any::Any;
 
 pub use plain::*;
 pub use socket::*;
@@ -28,13 +29,12 @@ mod plain;
 mod secure;
 
 
-
 pub trait Blocking {
     fn b_recv(&mut self) -> Result<Vec<u8>, Error>;
-    fn b_send(&mut self, buf: &[u8]) -> Result<(), Error>;
+    fn b_send<T: Any>(&mut self, buf: &[u8], args: &Vec<T>) -> Result<(), Error>;
 }
 
 pub trait NonBlocking {
     fn nb_recv(&mut self) -> Result<Vec<Vec<u8>>, Error>;
-    fn nb_send(&mut self, buf: &[u8]) -> Result<(), Error>;
+    fn nb_send<T: Any>(&mut self, buf: &[u8], args: &Vec<T>) -> Result<(), Error>;
 }
