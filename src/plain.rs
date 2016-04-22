@@ -62,7 +62,7 @@ impl<S, F> Blocking for Plain<S, F> where
 
             match F::from_bytes(&mut self.rx_buf) {
                 Some(boxed_frame) => {
-                    return Ok(boxed_frame.to_bytes());
+                    return Ok(boxed_frame.payload());
                 }
                 None => { }
             };
@@ -104,7 +104,7 @@ impl<S, F> NonBlocking for Plain<S, F> where
 
         let mut ret_buf = Vec::<Vec<u8>>::with_capacity(5);
         while let Some(boxed_frame) = F::from_bytes(&mut self.rx_buf) {
-            ret_buf.push(boxed_frame.to_bytes());
+            ret_buf.push(boxed_frame.payload());
         }
 
         if ret_buf.len() > 0 {
