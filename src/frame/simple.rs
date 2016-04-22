@@ -83,16 +83,18 @@ impl Frame for SimpleFrame {
         let mut frame: SimpleFrame = Default::default();
 
         // Starting frame guard
-        let first_byte = FrameGuard::from_bits(buf[0]).unwrap();
-        if first_byte.bits() != START.bits() {
-            error!("First byte was not expected start byte. Buffer corrupted?");
-            return None;
+        match FrameGuard::from_bits(buf[0]) {
+            Some(start_guard) => {
+                frame.start_guard = start_guard;
+            }
+            None => {
+                error!("First byte was not expected start byte. Buffer corrupted?: {}", buf[0]);
+            }
         }
-        frame.start_guard = first_byte;
 
         // Payload length
-        let mut payload_len: u16;
-        payload_len = (buf[1] as u16) << 8;
+        let mask = 0xFFFFu16;
+        let mut payload_len = ((buf[1] as u16) << 8) & mask;
         payload_len |= buf[2] as u16;
         frame.payload_len = payload_len;
 
@@ -105,12 +107,16 @@ impl Frame for SimpleFrame {
         frame.payload.extend_from_slice(&buf[3..(payload_len + 3)]);
 
         // Ending frame guard
-        let last_byte = FrameGuard::from_bits(buf[payload_len + 3]).unwrap();
-        if last_byte.bits() != START.bits() {
-            error!("Last byte was not expected end byte. Buffer corrupted?");
-            return None;
+        match FrameGuard::from_bits(buf[payload_len + 3]) {
+            Some(end_guard) => {
+                frame.end_guard = end_guard;
+            }
+            None => {
+                error!("Last byte was not expected end byte. Buffer corrupted? {}",
+                       buf[payload_len + 3]);
+                return None;
+            }
         }
-        frame.end_guard = last_byte;
 
         // Remove frame from buffer
         let mut remainder = Vec::<u8>::with_capacity(buf.len() - frame.len_as_vec());
