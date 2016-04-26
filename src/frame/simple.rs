@@ -133,6 +133,11 @@ impl Frame for SimpleFrame {
     fn len_as_vec(&self) -> usize {
         (self.payload_len + 4) as usize
     }
+
+    fn as_mut_raw_erased(&self) -> *mut () {
+        let dup = Box::new(self.clone());
+        return Box::into_raw(dup) as *mut _ as *mut ();
+    }
 }
 
 impl Default for SimpleFrame {

@@ -14,6 +14,7 @@ pub trait Frame: Sync + Send {
     fn to_bytes(&self) -> Vec<u8>;
     fn payload(&self) -> Vec<u8>;
     fn len_as_vec(&self) -> usize;
+    fn as_mut_raw_erased(&self) -> *mut ();
 }
 
 pub trait FrameBuilder {

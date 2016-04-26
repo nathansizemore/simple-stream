@@ -287,6 +287,11 @@ impl Frame for WebSocketFrame {
 
         len
     }
+
+    fn as_mut_raw_erased(&self) -> *mut () {
+        let dup = Box::new(self.clone());
+        return Box::into_raw(dup) as *mut _ as *mut ();
+    }
 }
 
 impl Default for WebSocketFrame {
