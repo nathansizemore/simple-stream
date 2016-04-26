@@ -1,6 +1,6 @@
 [package]
 name = "simple-stream"
-version = "0.7.1"
+version = "0.8.0"
 authors = ["Nathan Sizemore <nathanrsizemore@gmail.com>"]
 description = "Provides various stream abstractions with framing options."
 readme = "README.md"
