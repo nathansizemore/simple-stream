@@ -28,10 +28,9 @@
 
 
 use std::mem;
-use std::any::Any;
 use std::default::Default;
 
-use super::Frame;
+use super::{Frame, FrameBuilder};
 
 
 bitflags! {
@@ -49,34 +48,10 @@ pub struct SimpleFrame {
     end_guard: FrameGuard
 }
 
-impl Frame for SimpleFrame {
-
-    #[allow(unused_variables)]
-    fn new<T: Any>(buf: &[u8], args: &Vec<T>) -> Self {
-        SimpleFrame {
-            start_guard: START,
-            payload_len: buf.len() as u16,
-            payload: buf.to_vec(),
-            end_guard: END
-        }
-    }
-
-    fn payload(&self) -> Vec<u8> {
-        self.payload.clone()
-    }
-
-    fn to_bytes(&self) -> Vec<u8> {
-        let mut buf = Vec::<u8>::with_capacity(self.len_as_vec());
-        buf.push(self.start_guard.bits());
-        buf.push((self.payload_len >> 8) as u8);
-        buf.push(self.payload_len as u8);
-        buf.extend_from_slice(&self.payload[..]);
-        buf.push(self.end_guard.bits());
-
-        buf
-    }
-
-    fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<Self>> {
+#[derive(Clone)]
+pub struct SimpleFrameBuilder;
+impl FrameBuilder for SimpleFrameBuilder {
+    fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<Frame>> {
         if buf.len() < 5 {
             return None;
         }
@@ -124,7 +99,35 @@ impl Frame for SimpleFrame {
         remainder.extend_from_slice(&buf[frame.len_as_vec()..buf.len()]);
         mem::swap(buf, &mut remainder);
 
-        Some(Box::new(frame))
+        return Some(Box::new(frame));
+    }
+}
+
+impl SimpleFrame {
+    pub fn new(buf: &[u8]) -> Self {
+        SimpleFrame {
+            start_guard: START,
+            payload_len: buf.len() as u16,
+            payload: buf.to_vec(),
+            end_guard: END
+        }
+    }
+}
+
+impl Frame for SimpleFrame {
+    fn payload(&self) -> Vec<u8> {
+        self.payload.clone()
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut buf = Vec::<u8>::with_capacity(self.len_as_vec());
+        buf.push(self.start_guard.bits());
+        buf.push((self.payload_len >> 8) as u8);
+        buf.push(self.payload_len as u8);
+        buf.extend_from_slice(&self.payload[..]);
+        buf.push(self.end_guard.bits());
+
+        buf
     }
 
     fn len_as_vec(&self) -> usize {

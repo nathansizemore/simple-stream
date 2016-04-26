@@ -6,17 +6,16 @@
 // http://mozilla.org/MPL/2.0/.
 
 
-use std::any::Any;
-
-
 pub mod simple;
 pub mod websocket;
 
 
 pub trait Frame {
-    fn new<T: Any>(buf: &[u8], args: &Vec<T>) -> Self;
     fn to_bytes(&self) -> Vec<u8>;
     fn payload(&self) -> Vec<u8>;
-    fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<Self>>;
     fn len_as_vec(&self) -> usize;
+}
+
+pub trait FrameBuilder {
+    fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<Frame>>;
 }

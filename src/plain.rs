@@ -7,14 +7,14 @@
 
 
 use std::mem;
-use std::any::Any;
+use std::marker::PhantomData;
 use std::os::unix::io::{RawFd, AsRawFd};
 use std::io::{Read, Write, Error, ErrorKind};
 
 use libc;
 use errno::errno;
 
-use frame::Frame;
+use frame::{Frame, FrameBuilder};
 use super::{Blocking, NonBlocking};
 
 
@@ -22,35 +22,35 @@ const BUF_SIZE: usize = 1024;
 
 
 #[derive(Clone)]
-pub struct Plain<S, F> where
+pub struct Plain<S, FB> where
     S: Read + Write,
-    F: Frame
+    FB: FrameBuilder
 {
     inner: S,
-    frame: F,
     rx_buf: Vec<u8>,
-    tx_buf: Vec<u8>
+    tx_buf: Vec<u8>,
+    phantom: PhantomData<FB>
 }
 
-impl<S, F> Plain<S, F> where
+impl<S, FB> Plain<S, FB> where
     S: Read + Write,
-    F: Frame
+    FB: FrameBuilder
 {
-    pub fn new(stream: S, frame: F) -> Plain<S, F> {
+    pub fn new(stream: S) -> Plain<S, FB> {
         Plain {
             inner: stream,
-            frame: frame,
             rx_buf: Vec::<u8>::with_capacity(BUF_SIZE),
-            tx_buf: Vec::<u8>::with_capacity(BUF_SIZE)
+            tx_buf: Vec::<u8>::with_capacity(BUF_SIZE),
+            phantom: PhantomData
         }
     }
 }
 
-impl<S, F> Blocking for Plain<S, F> where
+impl<S, FB> Blocking for Plain<S, FB> where
     S: Read + Write,
-    F: Frame
+    FB: FrameBuilder
 {
-    fn b_recv(&mut self) -> Result<Vec<u8>, Error> {
+    fn b_recv(&mut self) -> Result<Box<Frame>, Error> {
         loop {
             let mut buf = [0u8; BUF_SIZE];
             let read_result = self.inner.read(&mut buf);
@@ -62,17 +62,16 @@ impl<S, F> Blocking for Plain<S, F> where
             let num_read = read_result.unwrap();
             self.rx_buf.extend_from_slice(&buf[0..num_read]);
 
-            match F::from_bytes(&mut self.rx_buf) {
+            match FB::from_bytes(&mut self.rx_buf) {
                 Some(boxed_frame) => {
-                    return Ok(boxed_frame.payload());
+                    return Ok(boxed_frame);
                 }
                 None => { }
             };
         }
     }
 
-    fn b_send<T: Any>(&mut self, buf: &[u8], args: &Vec<T>) -> Result<(), Error> {
-        let frame = F::new(buf, args);
+    fn b_send(&mut self, frame: &Frame) -> Result<(), Error> {
         let out_buf = frame.to_bytes();
         let write_result = self.inner.write(&out_buf[..]);
         if write_result.is_err() {
@@ -84,11 +83,11 @@ impl<S, F> Blocking for Plain<S, F> where
     }
 }
 
-impl<S, F> NonBlocking for Plain<S, F> where
+impl<S, FB> NonBlocking for Plain<S, FB> where
     S: Read + Write,
-    F: Frame
+    FB: FrameBuilder
 {
-    fn nb_recv(&mut self) -> Result<Vec<Vec<u8>>, Error> {
+    fn nb_recv(&mut self) -> Result<Vec<Box<Frame>>, Error> {
         loop {
             let mut buf = [0u8; BUF_SIZE];
             let read_result = self.inner.read(&mut buf);
@@ -104,9 +103,9 @@ impl<S, F> NonBlocking for Plain<S, F> where
             self.rx_buf.extend_from_slice(&buf[0..num_read]);
         }
 
-        let mut ret_buf = Vec::<Vec<u8>>::with_capacity(5);
-        while let Some(boxed_frame) = F::from_bytes(&mut self.rx_buf) {
-            ret_buf.push(boxed_frame.payload());
+        let mut ret_buf = Vec::<Box<Frame>>::with_capacity(5);
+        while let Some(boxed_frame) = FB::from_bytes(&mut self.rx_buf) {
+            ret_buf.push(boxed_frame);
         }
 
         if ret_buf.len() > 0 {
@@ -116,8 +115,7 @@ impl<S, F> NonBlocking for Plain<S, F> where
         Err(Error::new(ErrorKind::WouldBlock, "WouldBlock"))
     }
 
-    fn nb_send<T: Any>(&mut self, buf: &[u8], args: &Vec<T>) -> Result<(), Error> {
-        let frame = F::new(buf, args);
+    fn nb_send(&mut self, frame: &Frame) -> Result<(), Error> {
         self.tx_buf.extend_from_slice(&frame.to_bytes()[..]);
 
         let mut out_buf = Vec::<u8>::with_capacity(BUF_SIZE);
@@ -145,18 +143,18 @@ impl<S, F> NonBlocking for Plain<S, F> where
     }
 }
 
-impl<S, F> AsRawFd for Plain<S, F> where
+impl<S, FB> AsRawFd for Plain<S, FB> where
     S: Read + Write + AsRawFd,
-    F: Frame
+    FB: FrameBuilder
 {
     fn as_raw_fd(&self) -> RawFd {
         self.inner.as_raw_fd()
     }
 }
 
-impl<S, F> Plain<S, F> where
+impl<S, FB> Plain<S, FB> where
     S: Read + Write + AsRawFd,
-    F: Frame
+    FB: FrameBuilder
 {
     pub fn shutdown(&mut self) -> Result<(), Error> {
         let result = unsafe {
