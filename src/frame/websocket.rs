@@ -64,31 +64,39 @@ pub struct WebSocketFrameBuilder;
 impl FrameBuilder for WebSocketFrameBuilder {
     fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<Frame>> {
         if buf.len() < 5 {
+            trace!("Buffer length is less than 5, not worth trying...");
             return None;
         }
 
         let mut frame: WebSocketFrame = Default::default();
 
         // OpCode and FrameType
-        let op_code = OpCode::from_bits(buf[0]).unwrap();
-        if op_code.contains(CONTINUATION) {
-            frame.frame_type = FrameType::Data;
-            frame.header.op_code = CONTINUATION;
-        } else if op_code.contains(TEXT) {
-            frame.frame_type = FrameType::Data;
-            frame.header.op_code = TEXT;
-        } else if op_code.contains(BINARY) {
-            frame.frame_type = FrameType::Data;
-            frame.header.op_code = BINARY;
-        } else if op_code.contains(CLOSE) {
-            frame.frame_type = FrameType::Control;
-            frame.header.op_code = CLOSE;
-        } else if op_code.contains(PING) {
-            frame.frame_type = FrameType::Control;
-            frame.header.op_code = PING;
-        } else if op_code.contains(PONG) {
-            frame.frame_type = FrameType::Control;
-            frame.header.op_code = PONG;
+        match OpCode::from_bits(buf[0]) {
+            Some(op_code) => {
+                if op_code.contains(CONTINUATION) {
+                    frame.frame_type = FrameType::Data;
+                    frame.header.op_code = CONTINUATION;
+                } else if op_code.contains(TEXT) {
+                    frame.frame_type = FrameType::Data;
+                    frame.header.op_code = TEXT;
+                } else if op_code.contains(BINARY) {
+                    frame.frame_type = FrameType::Data;
+                    frame.header.op_code = BINARY;
+                } else if op_code.contains(CLOSE) {
+                    frame.frame_type = FrameType::Control;
+                    frame.header.op_code = CLOSE;
+                } else if op_code.contains(PING) {
+                    frame.frame_type = FrameType::Control;
+                    frame.header.op_code = PING;
+                } else if op_code.contains(PONG) {
+                    frame.frame_type = FrameType::Control;
+                    frame.header.op_code = PONG;
+                }
+            }
+            None => {
+                error!("Invalid OpCode bits: {:#b}", buf[0]);
+                return None;
+            }
         }
 
         // Payload masked (If from client, must always be true)
