@@ -64,20 +64,15 @@ pub struct WebSocketFrame {
 pub struct WebSocketFrameBuilder;
 impl FrameBuilder for WebSocketFrameBuilder {
     fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<Frame>> {
-        trace!("from_bytes buf.len(): {}", buf.len());
-        for byte in buf.iter() {
-            if *byte > 31 {
-                print!("{}", *byte as char);
-            } else {
-                print!("| {:#b} |", *byte);
-            }
-        }
-        println!("");
-
         if buf.len() < 5 {
             trace!("Buffer length is less than 5, not worth trying...");
             return None;
         }
+
+        trace!("from_bytes buf.len(): {}", buf.len());
+        trace!("buf[0]: {:#b}    // FIN and OpType", buf[0]);
+        trace!("buf[1]: {:#b}    // Mask and Payload Len", buf[1]);
+
 
         let mut frame: WebSocketFrame = Default::default();
 
