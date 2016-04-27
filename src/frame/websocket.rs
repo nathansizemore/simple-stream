@@ -81,21 +81,27 @@ impl FrameBuilder for WebSocketFrameBuilder {
         match OpCode::from_bits(fin_cleared) {
             Some(op_code) => {
                 if op_code.contains(CONTINUATION) {
+                    trace!("op_code.contains(CONTINUATION)");
                     frame.frame_type = FrameType::Data;
                     frame.header.op_code = CONTINUATION;
                 } else if op_code.contains(TEXT) {
+                    trace!("op_code.contains(TEXT)");
                     frame.frame_type = FrameType::Data;
                     frame.header.op_code = TEXT;
                 } else if op_code.contains(BINARY) {
+                    trace!("op_code.contains(BINARY)");
                     frame.frame_type = FrameType::Data;
                     frame.header.op_code = BINARY;
                 } else if op_code.contains(CLOSE) {
+                    trace!("op_code.contains(CLOSE)");
                     frame.frame_type = FrameType::Control;
                     frame.header.op_code = CLOSE;
                 } else if op_code.contains(PING) {
+                    trace!("op_code.contains(PING)");
                     frame.frame_type = FrameType::Control;
                     frame.header.op_code = PING;
                 } else if op_code.contains(PONG) {
+                    trace!("op_code.contains(PONG)");
                     frame.frame_type = FrameType::Control;
                     frame.header.op_code = PONG;
                 } else {
