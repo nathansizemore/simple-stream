@@ -71,7 +71,8 @@ impl FrameBuilder for WebSocketFrameBuilder {
         let mut frame: WebSocketFrame = Default::default();
 
         // OpCode and FrameType
-        match OpCode::from_bits(buf[0]) {
+        let fin_cleared = buf[0] & 0b0000_1111;
+        match OpCode::from_bits(fin_cleared) {
             Some(op_code) => {
                 if op_code.contains(CONTINUATION) {
                     frame.frame_type = FrameType::Data;
