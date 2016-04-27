@@ -103,13 +103,9 @@ impl FrameBuilder for WebSocketFrameBuilder {
             }
         }
 
-        trace!("Frame info:   Type: {} | OpType: {}", frame.frame_type, frame.op_type());
-
         // Payload masked (If from client, must always be true)
         let mask_bit = 0b1000_0000 & buf[1];
         frame.header.mask = mask_bit > 0;
-
-        trace!("Frame masked: {}", frame.header.mask);
 
         // Payload data length
         let payload_len = 0b0111_1111 & buf[1];
@@ -139,8 +135,6 @@ impl FrameBuilder for WebSocketFrameBuilder {
             frame.header.payload_len = len;
             next_offset = 10;
         }
-
-        trace!("Payload length: {}", frame.header.payload_len);
 
         // Optional masking key
         if frame.header.mask {
@@ -240,13 +234,15 @@ impl Frame for WebSocketFrame {
         let mut buf = Vec::<u8>::with_capacity(self.len_as_vec());
 
         // OpCode
-        buf.push(self.header.op_code.bits());
+        const FIN: u8 = 0b1000_0000;
+        let op_code_with_fin = FIN | self.header.op_code.bits();
+        buf.push(op_code_with_fin);
 
         // Mask and Payload len
         let mask_bit: u8 = if self.header.mask {
-            0b1000_000
+            0b1000_0000
         } else {
-            0b0000_000
+            0b0000_0000
         };
         let next_7_bits: u8 = if self.header.payload_len <= 125 {
             self.header.payload_len as u8
@@ -255,7 +251,7 @@ impl Frame for WebSocketFrame {
         } else {
             127u8
         };
-        let next_byte: u8 = mask_bit & next_7_bits;
+        let next_byte: u8 = mask_bit | next_7_bits;
         buf.push(next_byte);
 
         // Optional payload len
