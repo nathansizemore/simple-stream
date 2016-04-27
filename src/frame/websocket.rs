@@ -69,11 +69,6 @@ impl FrameBuilder for WebSocketFrameBuilder {
             return None;
         }
 
-        trace!("from_bytes buf.len(): {}", buf.len());
-        trace!("buf[0]: {:#b}    // FIN and OpType", buf[0]);
-        trace!("buf[1]: {:#b}    // Mask and Payload Len", buf[1]);
-
-
         let mut frame: WebSocketFrame = Default::default();
 
         // OpCode and FrameType
@@ -100,8 +95,7 @@ impl FrameBuilder for WebSocketFrameBuilder {
                     frame.frame_type = FrameType::Control;
                     frame.header.op_code = PONG;
                 } else {
-                    error!("Could not match within bitflags: {:#b}", buf[0]);
-                    return None;
+                    unreachable!();
                 }
             }
             None => {
@@ -119,15 +113,15 @@ impl FrameBuilder for WebSocketFrameBuilder {
         trace!("Frame masked: {}", frame.header.mask);
 
         // Payload data length
-        let mut next_offset: usize = 3;
-        let payload_len = 0b0111_1111 & buf[2];
+        let mut next_offset: usize = 2;
+        let payload_len = 0b0111_1111 & buf[1];
         if payload_len <= 125 {
             frame.header.payload_len = payload_len as u64;
         } else if payload_len == 126 {
-            let mut len = (buf[3] as u16) << 8;
-            len |= buf[4] as u16;
+            let mut len = (buf[2] as u16) << 8;
+            len |= buf[3] as u16;
             frame.header.payload_len = len as u64;
-            next_offset = 5;
+            next_offset = 4;
         } else {
             // We don't want to cause a panic
             if buf.len() < 10 {
@@ -135,7 +129,7 @@ impl FrameBuilder for WebSocketFrameBuilder {
                 return None;
             }
 
-            let mut len = (buf[3] as u64) << 56;
+            let mut len = (buf[2] as u64) << 56;
             len |= (buf[3] as u64) << 48;
             len |= (buf[4] as u64) << 40;
             len |= (buf[5] as u64) << 32;
