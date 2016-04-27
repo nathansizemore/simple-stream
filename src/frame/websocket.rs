@@ -7,6 +7,7 @@
 
 
 use std::u16;
+use std::fmt;
 use std::default::Default;
 
 use super::{Frame, FrameBuilder};
@@ -63,6 +64,16 @@ pub struct WebSocketFrame {
 pub struct WebSocketFrameBuilder;
 impl FrameBuilder for WebSocketFrameBuilder {
     fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<Frame>> {
+        trace!("from_bytes buf.len(): {}", buf.len());
+        for byte in buf.iter() {
+            if *byte > 31 {
+                print!("{}", *byte as char);
+            } else {
+                print!("| {:#b} |", *byte);
+            }
+        }
+        println!("");
+
         if buf.len() < 5 {
             trace!("Buffer length is less than 5, not worth trying...");
             return None;
@@ -92,6 +103,9 @@ impl FrameBuilder for WebSocketFrameBuilder {
                 } else if op_code.contains(PONG) {
                     frame.frame_type = FrameType::Control;
                     frame.header.op_code = PONG;
+                } else {
+                    error!("Could not match within bitflags: {:#b}", buf[0]);
+                    return None;
                 }
             }
             None => {
@@ -100,9 +114,13 @@ impl FrameBuilder for WebSocketFrameBuilder {
             }
         }
 
+        trace!("Frame info:   Type: {} | OpType: {}", frame.frame_type, frame.op_type());
+
         // Payload masked (If from client, must always be true)
         let mask_bit = 0b1000_0000 & buf[1];
         frame.header.mask = mask_bit > 0;
+
+        trace!("Frame masked: {}", frame.header.mask);
 
         // Payload data length
         let mut next_offset: usize = 3;
@@ -323,6 +341,50 @@ impl Default for WebSocketFrame {
             payload: Payload {
                 data: Vec::<u8>::new()
             }
+        }
+    }
+}
+
+impl fmt::Debug for FrameType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            FrameType::Control => write!(f, "FrameType::Control"),
+            FrameType::Data => write!(f, "FrameType::Data")
+        }
+    }
+}
+
+impl fmt::Display for FrameType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            FrameType::Control => write!(f, "FrameType::Control"),
+            FrameType::Data => write!(f, "FrameType::Data")
+        }
+    }
+}
+
+impl fmt::Debug for OpType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            OpType::Continuation => write!(f, "OpType::Continuation"),
+            OpType::Text => write!(f, "OpType::Text"),
+            OpType::Binary => write!(f, "OpType::Binary"),
+            OpType::Close => write!(f, "OpType::Close"),
+            OpType::Ping => write!(f, "OpType::Ping"),
+            OpType::Pong => write!(f, "OpType::Pong"),
+        }
+    }
+}
+
+impl fmt::Display for OpType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            OpType::Continuation => write!(f, "OpType::Continuation"),
+            OpType::Text => write!(f, "OpType::Text"),
+            OpType::Binary => write!(f, "OpType::Binary"),
+            OpType::Close => write!(f, "OpType::Close"),
+            OpType::Ping => write!(f, "OpType::Ping"),
+            OpType::Pong => write!(f, "OpType::Pong"),
         }
     }
 }
