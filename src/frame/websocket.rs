@@ -77,31 +77,26 @@ impl FrameBuilder for WebSocketFrameBuilder {
         let mut frame: WebSocketFrame = Default::default();
 
         // OpCode and FrameType
-        let fin_cleared = buf[0] & 0b0000_1111;
-        match OpCode::from_bits(fin_cleared) {
+        const FIN_CLEAR_MASK: u8 = 0b0000_1111;
+        let op_byte = buf[0] & FIN_CLEAR_MASK;
+        match OpCode::from_bits(op_byte) {
             Some(op_code) => {
-                if op_code.contains(CONTINUATION) {
-                    trace!("op_code.contains(CONTINUATION)");
+                if op_code == CONTINUATION {
                     frame.frame_type = FrameType::Data;
                     frame.header.op_code = CONTINUATION;
-                } else if op_code.contains(TEXT) {
-                    trace!("op_code.contains(TEXT)");
+                } else if op_code == TEXT {
                     frame.frame_type = FrameType::Data;
                     frame.header.op_code = TEXT;
-                } else if op_code.contains(BINARY) {
-                    trace!("op_code.contains(BINARY)");
+                } else if op_code == BINARY {
                     frame.frame_type = FrameType::Data;
                     frame.header.op_code = BINARY;
-                } else if op_code.contains(CLOSE) {
-                    trace!("op_code.contains(CLOSE)");
+                } else if op_code == CLOSE {
                     frame.frame_type = FrameType::Control;
                     frame.header.op_code = CLOSE;
-                } else if op_code.contains(PING) {
-                    trace!("op_code.contains(PING)");
+                } else if op_code == PING {
                     frame.frame_type = FrameType::Control;
                     frame.header.op_code = PING;
-                } else if op_code.contains(PONG) {
-                    trace!("op_code.contains(PONG)");
+                } else if op_code == PONG {
                     frame.frame_type = FrameType::Control;
                     frame.header.op_code = PONG;
                 } else {
