@@ -6,8 +6,7 @@
 // http://mozilla.org/MPL/2.0/.
 
 
-use std::u16;
-use std::fmt;
+use std::{u16, fmt, mem};
 use std::default::Default;
 
 use super::{Frame, FrameBuilder};
@@ -113,8 +112,8 @@ impl FrameBuilder for WebSocketFrameBuilder {
         trace!("Frame masked: {}", frame.header.mask);
 
         // Payload data length
-        let mut next_offset: usize = 2;
         let payload_len = 0b0111_1111 & buf[1];
+        let mut next_offset: usize = 2;
         if payload_len <= 125 {
             frame.header.payload_len = payload_len as u64;
         } else if payload_len == 126 {
@@ -163,9 +162,12 @@ impl FrameBuilder for WebSocketFrameBuilder {
 
         // Payload data
         let len = frame.header.payload_len as usize;
-        frame.payload.data.extend_from_slice(&buf[next_offset..len]);
+        frame.payload.data.extend_from_slice(&buf[next_offset..(len + next_offset)]);
 
-        trace!("Read complete");
+        // Remove from buffer
+        let mut remainder = Vec::<u8>::with_capacity(buf.len() - frame.len_as_vec());
+        remainder.extend_from_slice(&buf[frame.len_as_vec()..buf.len()]);
+        mem::swap(buf, &mut remainder);
 
         return Some(Box::new(frame));
     }
