@@ -117,6 +117,7 @@ impl FrameBuilder for WebSocketFrameBuilder {
         } else {
             // We don't want to cause a panic
             if buf.len() < 10 {
+                trace!("Not enough payload to continue reading payload length");
                 return None;
             }
 
@@ -132,9 +133,12 @@ impl FrameBuilder for WebSocketFrameBuilder {
             next_offset = 10;
         }
 
+        trace!("Payload length: {}", frame.header.payload_len);
+
         // Optional masking key
         if frame.header.mask {
             if buf.len() <= next_offset + 4 {
+                trace!("Payload masked, not enough in buffer to read masking key");
                 return None;
             }
             frame.header.masking_key[0] = buf[next_offset];
@@ -145,12 +149,15 @@ impl FrameBuilder for WebSocketFrameBuilder {
         }
 
         if buf.len() < next_offset + frame.header.payload_len as usize {
+            trace!("Not enough in buffer to read payload");
             return None;
         }
 
         // Payload data
         let len = frame.header.payload_len as usize;
         frame.payload.data.extend_from_slice(&buf[next_offset..len]);
+
+        trace!("Read complete");
 
         return Some(Box::new(frame));
     }
