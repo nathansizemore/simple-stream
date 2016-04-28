@@ -60,10 +60,12 @@ impl<S, FB> Blocking for Plain<S, FB> where
             }
 
             let num_read = read_result.unwrap();
+            trace!("Read {}bytes", num_read);
             self.rx_buf.extend_from_slice(&buf[0..num_read]);
 
             match FB::from_bytes(&mut self.rx_buf) {
                 Some(boxed_frame) => {
+                    info!("Complete frame read");
                     return Ok(boxed_frame);
                 }
                 None => { }
@@ -78,6 +80,8 @@ impl<S, FB> Blocking for Plain<S, FB> where
             let err = write_result.unwrap_err();
             return Err(err);
         }
+
+        trace!("Wrote {}bytes", write_result.unwrap());
 
         Ok(())
     }
@@ -100,15 +104,18 @@ impl<S, FB> NonBlocking for Plain<S, FB> where
             }
 
             let num_read = read_result.unwrap();
+            trace!("Read: {}bytes", num_read);
             self.rx_buf.extend_from_slice(&buf[0..num_read]);
         }
 
         let mut ret_buf = Vec::<Box<Frame>>::with_capacity(5);
         while let Some(boxed_frame) = FB::from_bytes(&mut self.rx_buf) {
+            info!("Complete frame read");
             ret_buf.push(boxed_frame);
         }
 
         if ret_buf.len() > 0 {
+            info!("Read {} frames", ret_buf.len());
             return Ok(ret_buf);
         }
 
@@ -131,6 +138,8 @@ impl<S, FB> NonBlocking for Plain<S, FB> where
         if num_written == 0 {
             return Err(Error::new(ErrorKind::Other, "Write returned zero"));
         }
+
+        trace!("Tried to write {}bytes wrote {}bytes", out_buf.len(), num_written);
 
         if num_written < out_buf.len() {
             let out_buf_len = out_buf.len();
@@ -157,6 +166,7 @@ impl<S, FB> Plain<S, FB> where
     FB: FrameBuilder
 {
     pub fn shutdown(&mut self) -> Result<(), Error> {
+        trace!("Shutting down stream");
         let result = unsafe {
             libc::shutdown(self.as_raw_fd(), libc::SHUT_RDWR)
         };
@@ -169,6 +179,7 @@ impl<S, FB> Plain<S, FB> where
     }
 
     pub fn close(&mut self) -> Result<(), Error> {
+        trace!("Closing stream");
         let result = unsafe {
             libc::close(self.as_raw_fd())
         };

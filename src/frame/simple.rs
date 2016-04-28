@@ -53,6 +53,7 @@ pub struct SimpleFrameBuilder;
 impl FrameBuilder for SimpleFrameBuilder {
     fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<Frame>> {
         if buf.len() < 5 {
+            trace!("Not worth trying, buffer not large enough");
             return None;
         }
 
@@ -61,6 +62,7 @@ impl FrameBuilder for SimpleFrameBuilder {
         // Starting frame guard
         match FrameGuard::from_bits(buf[0]) {
             Some(start_guard) => {
+                trace!("Start guard found");
                 frame.start_guard = start_guard;
             }
             None => {
@@ -76,8 +78,11 @@ impl FrameBuilder for SimpleFrameBuilder {
 
         let payload_len = payload_len as usize;
         if buf.len() - 4 < payload_len {
+            trace!("Not worth trying, buffer not large enough");
             return None;
         }
+
+        trace!("Payload length: {}", payload_len);
 
         // Payload data
         frame.payload.extend_from_slice(&buf[3..(payload_len + 3)]);
@@ -85,6 +90,7 @@ impl FrameBuilder for SimpleFrameBuilder {
         // Ending frame guard
         match FrameGuard::from_bits(buf[payload_len + 3]) {
             Some(end_guard) => {
+                trace!("End guard found");
                 frame.end_guard = end_guard;
             }
             None => {

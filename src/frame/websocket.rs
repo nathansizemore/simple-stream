@@ -64,7 +64,7 @@ pub struct WebSocketFrameBuilder;
 impl FrameBuilder for WebSocketFrameBuilder {
     fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<Frame>> {
         if buf.len() < 5 {
-            trace!("Buffer length is less than 5, not worth trying...");
+            trace!("Not worth trying, buffer not large enough");
             return None;
         }
 
@@ -103,9 +103,13 @@ impl FrameBuilder for WebSocketFrameBuilder {
             }
         }
 
+        trace!("{}", frame.op_type());
+
         // Payload masked (If from client, must always be true)
         let mask_bit = 0b1000_0000 & buf[1];
         frame.header.mask = mask_bit > 0;
+
+        trace!("Frame masked: {}", frame.header.mask);
 
         // Payload data length
         let payload_len = 0b0111_1111 & buf[1];
@@ -120,7 +124,7 @@ impl FrameBuilder for WebSocketFrameBuilder {
         } else {
             // We don't want to cause a panic
             if buf.len() < 10 {
-                trace!("Not enough payload to continue reading payload length");
+                trace!("Not worth trying, buffer not large enough");
                 return None;
             }
 
@@ -136,10 +140,12 @@ impl FrameBuilder for WebSocketFrameBuilder {
             next_offset = 10;
         }
 
+        trace!("Payload length: {}", frame.header.payload_len);
+
         // Optional masking key
         if frame.header.mask {
             if buf.len() <= next_offset + 4 {
-                trace!("Payload masked, not enough in buffer to read masking key");
+                trace!("Not worth trying, buffer not large enough");
                 return None;
             }
             frame.header.masking_key[0] = buf[next_offset];
@@ -150,7 +156,7 @@ impl FrameBuilder for WebSocketFrameBuilder {
         }
 
         if buf.len() < next_offset + frame.header.payload_len as usize {
-            trace!("Not enough in buffer to read payload");
+            trace!("Not worth trying, buffer not large enough");
             return None;
         }
 
