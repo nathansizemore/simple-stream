@@ -7,7 +7,7 @@
 
 
 //! The `simple_stream::fame` module contains Trait definitions and built-in types for coupling
-//! with a stream type to provides a structred way to send and receive message through streams.
+//! with a stream type to provide a structred way to send and receive message through streams.
 //!
 //! # Frame and FrameBuilder
 //!

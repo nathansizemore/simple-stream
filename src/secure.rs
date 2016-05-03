@@ -23,6 +23,7 @@ use super::{Blocking, NonBlocking};
 const BUF_SIZE: usize = 1024;
 
 
+/// OpenSSL backed stream.
 #[derive(Clone)]
 pub struct Secure<S, FB> where
     S: Read + Write,
