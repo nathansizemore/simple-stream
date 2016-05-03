@@ -1,61 +1,57 @@
-# simple-stream [<img src="https://travis-ci.org/nathansizemore/simple-stream.png?branch=master">][q]
+# simple-stream [<img src="https://travis-ci.org/nathansizemore/simple-stream.png?branch=master">][travis-badge]
 
-[Documentation][w]
+[Documentation][docs]
 
 ---
+The simple-stream crate provides simple abstraction building blocks over any type that implements [`std::io::Read`][std-io-read] + [`std::io::Write`][std-io-write], coupled with a [`FrameBuilder`][framebuilder]. It provides built-in types for plain text and secured streams with help from [rust-openssl][rust-openssl-repo]. It includes both blocking and non-blocking modes for any type.
 
-The simple-stream crate provides a simple framing protocol over any type that implements the
-[`SStream`][e] trait. It also provides built-in support for blocking and non-blocking streams over
-Unix file descriptors in both plain-text and SSL through [rust-openssl][r].
+It works by handling all of the I/O on a frame based level. It includes a "simple" built-in framing
+pattern and WebSocket based framing. It supports custom Frames and FrameBuilders through the frame
+module traits.
 
-## Usage
+## Example Usage
 
 ~~~rust
 extern crate simple_stream as ss;
 
-use std::net::TcpStream;
-use std::os::unix::io::IntoRawFd;
-
-use ss::{Socket, Stream, SSend, SRecv, StreamShutdown};
-use ss::nonblocking::plain::Plain;
+use ss::frame::Frame;
+use ss::frame::simple::{SimpleFrame, SimpleFrameBuilder};
+use ss::{Socket, Plain, NonBlocking, SocketOptions};
 
 
 fn main() {
-    // Starting with an established TcpStream
-    let tcp_stream = TcpStream::connect("127.0.0.1").unwrap();
+    // tcp_stream is some connection established std::net::TcpStream
+    //
+    // Take ownership of the underlying fd to remove TcpStream's Drop being called now
+    // that we're switching types.
+    let fd = tcp_stream.into_raw_fd();
 
-    // Create a socket that takes ownership of the underlying fd
-    let socket = Socket::new(tcp_stream.into_raw_fd());
+    // Create a socket and set any POSIX based TCP/SOL_SOCKET options
+    let mut socket = Socket::new(fd);
+    socket.set_keepalive(true);
+    socket.set_nonblocking();
 
-    // Pick a built-in stream type to wrap the socket
-    let plain_text = Plain::new(socket);
+    // Create a plain text based stream that reads messages with SimpleFrame type
+    let mut plain_stream = Plain::<Socket, SimpleFrameBuilder>::new(socket);
 
-    // Create a Stream
-    let mut stream = Stream::new(Box::new(plain_text));
-
-    // Write a thing
-    let buffer = "ping".as_bytes();
-    match stream.send(&buffer[..]) {
-        Ok(num_written) => println!("Wrote: {} bytes", num_written),
-        Err(e) => {
-            println!("Error during write: {}", e);
-            stream.shutdown().unwrap();
-        }
-    }
-
-    // Receive all the things
-    match stream.recv() {
-        Ok(()) => {
-            let mut queue = stream.drain_rx_queue();
-            for msg in queue.drain(..) {
-                println!("Received: {}", String::from_utf8(msg).unwrap());
+    // Perform non-blocking read
+    match plain_stream.nb_recv() {
+        Ok(frames) => {
+            // msgs is a Vec<Box<Frame>>
+            for frame in frames.iter() {
+                // Do stuff with received things
             }
         }
         Err(e) => {
-            println!("Error during read: {}", e);
-            stream.shutdown().unwrap();
+            // Error handling here
         }
     }
+
+    // Perform non-blocking write
+    let frame = SimpleFrame::new(&some_buf[..]);
+    plain_stream.nb_send(&frame).map_err(|e| {
+        // Error handling here
+    });
 }
 ~~~
 
@@ -70,7 +66,9 @@ simple-stream is available under the MPL-2.0 license. See the LICENSE file for m
 
 
 
-[q]: https://travis-ci.org/nathansizemore/simple-stream
-[w]: https://nathansizemore.github.io/simple-stream/simple_stream/index.html
-[e]: https://nathansizemore.github.io/simple-stream/simple_stream/stream/trait.SStream.html
-[r]: https://github.com/sfackler/rust-openssl
+[travis-badge]: https://travis-ci.org/nathansizemore/simple-stream
+[docs]: https://nathansizemore.github.io/simple-stream/simple_stream/index.html
+[std-io-read]: https://doc.rust-lang.org/std/io/trait.Read.html
+[std-io-write]: https://doc.rust-lang.org/std/io/trait.Write.html
+[framebuilder]: https://nathansizemore.github.io/simple-stream/simple_stream/frame/trait.FrameBuilder.html
+[rust-openssl-repo]: https://github.com/sfackler/rust-openssl
