@@ -18,7 +18,7 @@
 //!
 //! ## Example Usage
 //!
-//! ~~~rust
+//! ```ignore
 //! extern crate simple_stream as ss;
 //!
 //! use ss::frame::Frame;
@@ -60,7 +60,7 @@
 //!         // Error handling here
 //!     });
 //! }
-//! ~~~
+//! ```
 
 
 #[macro_use]
