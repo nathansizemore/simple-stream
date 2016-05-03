@@ -6,10 +6,7 @@
 // http://mozilla.org/MPL/2.0/.
 
 
-//! The frame module provides a structred way to send and receive
-//! message through streams.
-//!
-//! ## Data Framing
+//! ## SimleFrame
 //!
 //! ```ignore
 //! 0                   1                   2                   3
@@ -20,10 +17,10 @@
 //! |           Payload Data Continued          |   Frame End   |
 //! +-----------------------------------------------------------+
 //!
-//! Start Frame:    8 bits (must be 0x01)
+//! Start Guard:    8 bits (0x01)
 //! Payload Len:    16 bits
 //! Payload Data:   Payload Len bytes
-//! End Frame:      8 bits (must be 0x17)
+//! End Guard:      8 bits (0x17)
 //! ```
 
 
@@ -53,7 +50,6 @@ pub struct SimpleFrameBuilder;
 impl FrameBuilder for SimpleFrameBuilder {
     fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<Frame>> {
         if buf.len() < 5 {
-            trace!("Not worth trying, buffer not large enough");
             return None;
         }
 
@@ -66,7 +62,7 @@ impl FrameBuilder for SimpleFrameBuilder {
                 frame.start_guard = start_guard;
             }
             None => {
-                error!("First byte was not expected start byte. Buffer corrupted?: {}", buf[0]);
+                error!("First byte was not expected start byte. Buffer corrupted?: {:#b}", buf[0]);
             }
         }
 
@@ -78,7 +74,6 @@ impl FrameBuilder for SimpleFrameBuilder {
 
         let payload_len = payload_len as usize;
         if buf.len() - 4 < payload_len {
-            trace!("Not worth trying, buffer not large enough");
             return None;
         }
 
@@ -94,7 +89,7 @@ impl FrameBuilder for SimpleFrameBuilder {
                 frame.end_guard = end_guard;
             }
             None => {
-                error!("Last byte was not expected end byte. Buffer corrupted? {}",
+                error!("Last byte was not expected end byte. Buffer corrupted? {:#b}",
                        buf[payload_len + 3]);
                 return None;
             }
@@ -110,6 +105,7 @@ impl FrameBuilder for SimpleFrameBuilder {
 }
 
 impl SimpleFrame {
+    /// Creates a new `SimpleFrame`
     pub fn new(buf: &[u8]) -> Self {
         SimpleFrame {
             start_guard: START,

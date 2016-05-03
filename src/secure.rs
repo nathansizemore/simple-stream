@@ -38,6 +38,7 @@ impl<S, FB> Secure<S, FB> where
     S: Read + Write,
     FB: FrameBuilder
 {
+    /// Creates a new secured stream.
     pub fn new(stream: SslStream<S>) -> Secure<S, FB> {
         Secure {
             inner: stream,
@@ -62,7 +63,7 @@ impl<S, FB> Blocking for Secure<S, FB> where
             }
 
             let num_read = read_result.unwrap();
-            trace!("Read {}bytes", num_read);
+            trace!("Read {} byte(s)", num_read);
             self.rx_buf.extend_from_slice(&buf[0..num_read]);
 
             match FB::from_bytes(&mut self.rx_buf) {
@@ -82,7 +83,7 @@ impl<S, FB> Blocking for Secure<S, FB> where
             return Err(err);
         }
 
-        trace!("Wrote {}bytes", write_result.unwrap());
+        trace!("Wrote {} byte(s)", write_result.unwrap());
 
         Ok(())
     }
@@ -129,7 +130,7 @@ impl<S, FB> NonBlocking for Secure<S, FB> where
             }
 
             let num_read = read_result.unwrap();
-            trace!("Read: {}bytes", num_read);
+            trace!("Read {} byte(s)", num_read);
             self.rx_buf.extend_from_slice(&buf[0..num_read]);
         }
 
@@ -140,7 +141,7 @@ impl<S, FB> NonBlocking for Secure<S, FB> where
         }
 
         if ret_buf.len() > 0 {
-            info!("Read {} frames", ret_buf.len());
+            info!("Read {} frame(s)", ret_buf.len());
             return Ok(ret_buf);
         }
 
@@ -188,7 +189,7 @@ impl<S, FB> NonBlocking for Secure<S, FB> where
             return Err(Error::new(ErrorKind::Other, "Write returned zero"));
         }
 
-        trace!("Tried to write {}bytes wrote {}bytes", out_buf.len(), num_written);
+        trace!("Tried to write {} byte(s) wrote {} byte(s)", out_buf.len(), num_written);
 
         if num_written < out_buf.len() {
             let out_buf_len = out_buf.len();
@@ -214,6 +215,7 @@ impl<S, FB> Secure<S, FB> where
     S: Read + Write + AsRawFd,
     FB: FrameBuilder
 {
+    /// Calls `libc::shutdown` on the underlying `RawFd`
     pub fn shutdown(&mut self) -> Result<(), Error> {
         trace!("Shutting down stream");
         let result = unsafe {
@@ -227,6 +229,7 @@ impl<S, FB> Secure<S, FB> where
         Ok(())
     }
 
+    /// Calls `lib::close` on the underlying `RawFd`
     pub fn close(&mut self) -> Result<(), Error> {
         trace!("Closing stream");
         let result = unsafe {

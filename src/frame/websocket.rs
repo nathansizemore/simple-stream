@@ -6,6 +6,15 @@
 // http://mozilla.org/MPL/2.0/.
 
 
+//! The `frame::websocket` module provides [RFC-6465][rfc-6455] support for websocket based
+//! streams. This module provides no support for the handshake part of the protocol, or any
+//! smarts about handling fragmentation messages. It simply encodes/decodes complete websocket
+//! frames.
+//!
+//! [rfc-6455]: https://tools.ietf.org/html/rfc6455
+
+
+
 use std::{u16, fmt, mem};
 use std::default::Default;
 
@@ -64,7 +73,6 @@ pub struct WebSocketFrameBuilder;
 impl FrameBuilder for WebSocketFrameBuilder {
     fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<Frame>> {
         if buf.len() < 5 {
-            trace!("Not worth trying, buffer not large enough");
             return None;
         }
 
@@ -124,7 +132,6 @@ impl FrameBuilder for WebSocketFrameBuilder {
         } else {
             // We don't want to cause a panic
             if buf.len() < 10 {
-                trace!("Not worth trying, buffer not large enough");
                 return None;
             }
 
@@ -145,7 +152,6 @@ impl FrameBuilder for WebSocketFrameBuilder {
         // Optional masking key
         if frame.header.mask {
             if buf.len() <= next_offset + 4 {
-                trace!("Not worth trying, buffer not large enough");
                 return None;
             }
             frame.header.masking_key[0] = buf[next_offset];
@@ -156,7 +162,6 @@ impl FrameBuilder for WebSocketFrameBuilder {
         }
 
         if buf.len() < next_offset + frame.header.payload_len as usize {
-            trace!("Not worth trying, buffer not large enough");
             return None;
         }
 

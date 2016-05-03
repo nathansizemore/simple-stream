@@ -6,6 +6,10 @@
 // http://mozilla.org/MPL/2.0/.
 
 
+//! The `simple_stream::socket` module provides a decent amount of out of the box support for
+//! Unix based TCP sockets.
+
+
 use std::mem;
 use std::ffi::CString;
 use std::os::unix::io::{RawFd, AsRawFd};

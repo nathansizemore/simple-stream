@@ -1,8 +1,8 @@
 [package]
 name = "simple-stream"
-version = "0.9.3"
+version = "0.9.4"
 authors = ["Nathan Sizemore <nathanrsizemore@gmail.com>"]
-description = "Various secure and plain text stream abstractions."
+description = "Provides various building blocks, abstractions, and types for streams."
 readme = "README.md"
 keywords = ["socket", "stream", "non-blocking", "websocket", "ssl"]
 license = "MPL-2.0"
