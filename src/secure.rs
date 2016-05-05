@@ -55,6 +55,15 @@ impl<S, FB> Blocking for Secure<S, FB> where
     FB: FrameBuilder
 {
     fn b_recv(&mut self) -> Result<Box<Frame>, Error> {
+        // Empty anything that is in our buffer already from any previous reads
+        match FB::from_bytes(&mut self.rx_buf) {
+            Some(boxed_frame) => {
+                debug!("Complete frame read");
+                return Ok(boxed_frame);
+            }
+            None => { }
+        };
+
         loop {
             let mut buf = [0u8; BUF_SIZE];
             let read_result = self.inner.read(&mut buf);
@@ -69,6 +78,7 @@ impl<S, FB> Blocking for Secure<S, FB> where
 
             match FB::from_bytes(&mut self.rx_buf) {
                 Some(boxed_frame) => {
+                    debug!("Complete frame read");
                     return Ok(boxed_frame);
                 }
                 None => { }

@@ -53,6 +53,15 @@ impl<S, FB> Blocking for Plain<S, FB> where
     FB: FrameBuilder
 {
     fn b_recv(&mut self) -> Result<Box<Frame>, Error> {
+        // Empty anything that is in our buffer already from any previous reads
+        match FB::from_bytes(&mut self.rx_buf) {
+            Some(boxed_frame) => {
+                debug!("Complete frame read");
+                return Ok(boxed_frame);
+            }
+            None => { }
+        };
+
         loop {
             let mut buf = [0u8; BUF_SIZE];
             let read_result = self.inner.read(&mut buf);
@@ -67,7 +76,7 @@ impl<S, FB> Blocking for Plain<S, FB> where
 
             match FB::from_bytes(&mut self.rx_buf) {
                 Some(boxed_frame) => {
-                    info!("Complete frame read");
+                    debug!("Complete frame read");
                     return Ok(boxed_frame);
                 }
                 None => { }
@@ -112,12 +121,12 @@ impl<S, FB> NonBlocking for Plain<S, FB> where
 
         let mut ret_buf = Vec::<Box<Frame>>::with_capacity(5);
         while let Some(boxed_frame) = FB::from_bytes(&mut self.rx_buf) {
-            info!("Complete frame read");
+            debug!("Complete frame read");
             ret_buf.push(boxed_frame);
         }
 
         if ret_buf.len() > 0 {
-            info!("Read {} frame(s)", ret_buf.len());
+            debug!("Read {} frame(s)", ret_buf.len());
             return Ok(ret_buf);
         }
 
