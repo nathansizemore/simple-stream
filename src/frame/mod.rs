@@ -17,9 +17,9 @@
 //! chunk of bytes.
 
 
-pub use self::simple::SimpleFrame;
-pub use self::websocket::WebSocketFrame;
-pub use self::checksum32::Checksum32Frame;
+pub use self::simple::*;
+pub use self::websocket::*;
+pub use self::checksum32::*;
 
 mod simple;
 mod websocket;
