@@ -17,8 +17,13 @@
 //! chunk of bytes.
 
 
-pub mod simple;
-pub mod websocket;
+pub use self::simple::SimpleFrame;
+pub use self::websocket::WebSocketFrame;
+pub use self::checksum32::Checksum32Frame;
+
+mod simple;
+mod websocket;
+mod checksum32;
 
 /// The Frame trait allows for type construction/destruction to/from a chunk of bytes.
 pub trait Frame: Sync + Send {

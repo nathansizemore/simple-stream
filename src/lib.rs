@@ -63,24 +63,17 @@
 //! ```
 
 
-#[macro_use]
-extern crate log;
-extern crate libc;
-extern crate errno;
+#[macro_use] extern crate log;
+#[macro_use] extern crate bitflags;
 extern crate openssl;
-#[macro_use]
-extern crate bitflags;
 
 use std::io::Error;
 
 use frame::Frame;
-
 pub use plain::*;
-pub use socket::*;
 pub use secure::*;
 
 pub mod frame;
-mod socket;
 mod plain;
 mod secure;
 
@@ -95,7 +88,7 @@ pub trait Blocking {
     fn b_send(&mut self, frame: &Frame) -> Result<(), Error>;
 }
 
-/// THe `NonBlocking` trait provides method definitions for use with non-blocking streams.
+/// The `NonBlocking` trait provides method definitions for use with non-blocking streams.
 pub trait NonBlocking {
     /// Performs a non-blocking read on the underlying stream until `ErrorKind::WouldBlock` or an
     /// `std::io::Error` has occurred.

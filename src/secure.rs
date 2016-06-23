@@ -11,8 +11,6 @@ use std::marker::PhantomData;
 use std::os::unix::io::{RawFd, AsRawFd};
 use std::io::{Read, Write, Error, ErrorKind};
 
-use libc;
-use errno::errno;
 use openssl::ssl::SslStream;
 use openssl::ssl::error::Error as SslStreamError;
 
@@ -219,38 +217,5 @@ impl<S, FB> AsRawFd for Secure<S, FB> where
 {
     fn as_raw_fd(&self) -> RawFd {
         self.inner.as_raw_fd()
-    }
-}
-
-impl<S, FB> Secure<S, FB> where
-    S: Read + Write + AsRawFd,
-    FB: FrameBuilder
-{
-    /// Calls `libc::shutdown` on the underlying `RawFd`
-    pub fn shutdown(&mut self) -> Result<(), Error> {
-        trace!("Shutting down stream");
-        let result = unsafe {
-            libc::shutdown(self.as_raw_fd(), libc::SHUT_RDWR)
-        };
-
-        if result < 0 {
-            return Err(Error::from_raw_os_error(errno().0 as i32));
-        }
-
-        Ok(())
-    }
-
-    /// Calls `lib::close` on the underlying `RawFd`
-    pub fn close(&mut self) -> Result<(), Error> {
-        trace!("Closing stream");
-        let result = unsafe {
-            libc::close(self.as_raw_fd())
-        };
-
-        if result < 0 {
-            return Err(Error::from_raw_os_error(errno().0 as i32));
-        }
-
-        Ok(())
     }
 }
