@@ -9,20 +9,17 @@
 use std::mem;
 use std::marker::PhantomData;
 use std::os::unix::io::{RawFd, AsRawFd};
-use std::io::{Read, Write, Error, ErrorKind};
+use std::io::{Read, Write, Error as ioError, ErrorKind};
 
 use openssl::ssl::SslStream;
-use openssl::ssl::error::Error as SslStreamError;
+use openssl::ssl::ErrorCode as SslStreamErrorCode;
 
 use frame::{Frame, FrameBuilder};
 use super::{Blocking, NonBlocking};
 
-
 const BUF_SIZE: usize = 1024;
 
-
 /// OpenSSL backed stream.
-#[derive(Clone)]
 pub struct Secure<S, FB> where
     S: Read + Write,
     FB: FrameBuilder
@@ -52,7 +49,7 @@ impl<S, FB> Blocking for Secure<S, FB> where
     S: Read + Write,
     FB: FrameBuilder
 {
-    fn b_recv(&mut self) -> Result<Box<Frame>, Error> {
+    fn b_recv(&mut self) -> Result<Box<dyn Frame>, ioError> {
         // Empty anything that is in our buffer already from any previous reads
         match FB::from_bytes(&mut self.rx_buf) {
             Some(boxed_frame) => {
@@ -84,7 +81,7 @@ impl<S, FB> Blocking for Secure<S, FB> where
         }
     }
 
-    fn b_send(&mut self, frame: &Frame) -> Result<(), Error> {
+    fn b_send(&mut self, frame: &dyn Frame) -> Result<(), ioError> {
         let out_buf = frame.to_bytes();
         let write_result = self.inner.write(&out_buf[..]);
         if write_result.is_err() {
@@ -102,38 +99,34 @@ impl<S, FB> NonBlocking for Secure<S, FB> where
     S: Read + Write,
     FB: FrameBuilder
 {
-    fn nb_recv(&mut self) -> Result<Vec<Box<Frame>>, Error> {
+    fn nb_recv(&mut self) -> Result<Vec<Box<dyn Frame>>, ioError> {
         loop {
             let mut buf = [0u8; BUF_SIZE];
             let read_result = self.inner.ssl_read(&mut buf);
             if read_result.is_err() {
                 let err = read_result.unwrap_err();
-                match err {
-                    SslStreamError::ZeroReturn => {
-                        return Err(Error::new(ErrorKind::UnexpectedEof, "UnexpectedEof"));
+                match err.code() {
+                    SslStreamErrorCode::ZERO_RETURN => {
+                        return Err(ioError::new(ErrorKind::UnexpectedEof, "UnexpectedEof"));
                     }
-                    SslStreamError::WantRead(_) => {
+                    SslStreamErrorCode::WANT_READ => {
                         break;
                     }
-                    SslStreamError::WantX509Lookup => {
-                        return Err(Error::new(ErrorKind::Other, "WantX509Lookup"));
-                    }
-                    SslStreamError::Stream(e) => {
-                        return Err(e);
-                    }
-                    SslStreamError::Ssl(ssl_errs) => {
-                        let mut err_str = String::new();
-                        err_str.push_str("The following Ssl Error codes were thrown: ");
 
-                        for ssl_err in ssl_errs.iter() {
-                            err_str.push_str(&(format!("{} ", ssl_err.error_code())[..]));
-                        }
+                    SslStreamErrorCode::WANT_WRITE => {
+                        return Err(ioError::new(ErrorKind::Other, "WantWrite"));
+                    }
 
-                        return Err(Error::new(ErrorKind::Other, &err_str[..]));
+                    SslStreamErrorCode::SYSCALL => {
+                        return Err(ioError::new(ErrorKind::Other, "Syscall"));
+                    }
+
+                    SslStreamErrorCode::SSL => {
+                        return Err(ioError::new(ErrorKind::Other, "SSL"));
                     }
                     _ => {
                         // Other error types should not be thrown from this operation
-                        return Err(Error::new(ErrorKind::Other, "Unknown error during ssl_read"));
+                        return Err(ioError::new(ErrorKind::Other, "Unknown error during ssl_read"));
                     }
                 };
             }
@@ -143,7 +136,7 @@ impl<S, FB> NonBlocking for Secure<S, FB> where
             self.rx_buf.extend_from_slice(&buf[0..num_read]);
         }
 
-        let mut ret_buf = Vec::<Box<Frame>>::with_capacity(5);
+        let mut ret_buf = Vec::<Box<dyn Frame>>::with_capacity(5);
         while let Some(boxed_frame) = FB::from_bytes(&mut self.rx_buf) {
             info!("Complete frame read");
             ret_buf.push(boxed_frame);
@@ -154,10 +147,10 @@ impl<S, FB> NonBlocking for Secure<S, FB> where
             return Ok(ret_buf);
         }
 
-        Err(Error::new(ErrorKind::WouldBlock, "WouldBlock"))
+        Err(ioError::new(ErrorKind::WouldBlock, "WouldBlock"))
     }
 
-    fn nb_send(&mut self, frame: &Frame) -> Result<(), Error> {
+    fn nb_send(&mut self, frame: &dyn Frame) -> Result<(), ioError> {
         self.tx_buf.extend_from_slice(&frame.to_bytes()[..]);
 
         let mut out_buf = Vec::<u8>::with_capacity(BUF_SIZE);
@@ -166,36 +159,34 @@ impl<S, FB> NonBlocking for Secure<S, FB> where
         let write_result = self.inner.ssl_write(&out_buf[..]);
         if write_result.is_err() {
             let err = write_result.unwrap_err();
-            match err {
-                SslStreamError::WantWrite(_) => {
-                    return Err(Error::new(ErrorKind::WouldBlock, "WouldBlock"));
+            match err.code() {
+                SslStreamErrorCode::ZERO_RETURN => {
+                    return Err(ioError::new(ErrorKind::UnexpectedEof, "UnexpectedEof"));
                 }
-                SslStreamError::WantX509Lookup => {
-                    return Err(Error::new(ErrorKind::Other, "WantX509Lookup"));
+                SslStreamErrorCode::WANT_WRITE => {
+                    return Err(ioError::new(ErrorKind::WouldBlock, "WouldBlock"));
                 }
-                SslStreamError::Stream(e) => {
-                    return Err(e);
+                SslStreamErrorCode::SYSCALL => {
+                    return Err(ioError::new(ErrorKind::Other, "Syscall"));
                 }
-                SslStreamError::Ssl(ssl_errs) => {
-                    let mut err_str = String::new();
-                    err_str.push_str("The following Ssl Error codes were thrown: ");
 
-                    for ssl_err in ssl_errs.iter() {
-                        err_str.push_str(&(format!("{} ", ssl_err.error_code())[..]));
-                    }
-
-                    return Err(Error::new(ErrorKind::Other, &err_str[..]));
+                SslStreamErrorCode::SSL => {
+                    return Err(ioError::new(ErrorKind::Other, "SSL"));
                 }
                 _ => {
                     // Other error types should not be thrown from this operation
-                    return Err(Error::new(ErrorKind::Other, "Unknown error during ssl_write"))
+                    return Err(ioError::new(ErrorKind::Other, "Unknown error during ssl_read"));
+                }
+                _ => {
+                    // Other error types should not be thrown from this operation
+                    return Err(ioError::new(ErrorKind::Other, "Unknown error during ssl_write"))
                 }
             };
         }
 
         let num_written = write_result.unwrap();
         if num_written == 0 {
-            return Err(Error::new(ErrorKind::Other, "Write returned zero"));
+            return Err(ioError::new(ErrorKind::Other, "Write returned zero"));
         }
 
         trace!("Tried to write {} byte(s) wrote {} byte(s)", out_buf.len(), num_written);
@@ -204,18 +195,9 @@ impl<S, FB> NonBlocking for Secure<S, FB> where
             let out_buf_len = out_buf.len();
             self.tx_buf.extend_from_slice(&out_buf[num_written..out_buf_len]);
 
-            return Err(Error::new(ErrorKind::WouldBlock, "WouldBlock"));
+            return Err(ioError::new(ErrorKind::WouldBlock, "WouldBlock"));
         }
 
         Ok(())
-    }
-}
-
-impl<S, FB> AsRawFd for Secure<S, FB> where
-    S: Read + Write + AsRawFd,
-    FB: FrameBuilder
-{
-    fn as_raw_fd(&self) -> RawFd {
-        self.inner.as_raw_fd()
     }
 }

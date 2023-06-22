@@ -71,7 +71,7 @@ pub struct WebSocketFrame {
 #[derive(Clone)]
 pub struct WebSocketFrameBuilder;
 impl FrameBuilder for WebSocketFrameBuilder {
-    fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<Frame>> {
+    fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<dyn Frame>> {
         if buf.len() < 5 {
             return None;
         }

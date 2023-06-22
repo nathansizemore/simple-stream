@@ -60,16 +60,19 @@
 
 #[macro_use] extern crate log;
 #[macro_use] extern crate bitflags;
+#[cfg(feature = "openssl")]
 extern crate openssl;
 
 use std::io::Error;
 
 use frame::Frame;
 pub use plain::*;
+#[cfg(feature = "openssl")]
 pub use secure::*;
 
 pub mod frame;
 mod plain;
+#[cfg(feature = "openssl")]
 mod secure;
 
 
@@ -77,10 +80,10 @@ mod secure;
 pub trait Blocking {
     /// Performs a blocking read on the underlying stream until a complete Frame has been read
     /// or an `std::io::Error` has occurred.
-    fn b_recv(&mut self) -> Result<Box<Frame>, Error>;
+    fn b_recv(&mut self) -> Result<Box<dyn Frame>, Error>;
     /// Performs a blocking send on the underlying stream until a complete frame has been sent
     /// or an `std::io::Error` has occurred.
-    fn b_send(&mut self, frame: &Frame) -> Result<(), Error>;
+    fn b_send(&mut self, frame: &dyn Frame) -> Result<(), Error>;
 }
 
 /// The `NonBlocking` trait provides method definitions for use with non-blocking streams.
@@ -93,7 +96,7 @@ pub trait NonBlocking {
     /// Unlike its blocking counterpart, errors received on the OpenSSL level will be returned as
     /// `ErrorKind::Other` with various OpenSSL error information as strings in the description
     /// field of the `std::io::Error`.
-    fn nb_recv(&mut self) -> Result<Vec<Box<Frame>>, Error>;
+    fn nb_recv(&mut self) -> Result<Vec<Box<dyn Frame>>, Error>;
     /// Performs a non-blocking send on the underlying stream until `ErrorKind::WouldBlock` or an
     /// `std::io::Error` has occurred.
     ///
@@ -102,5 +105,5 @@ pub trait NonBlocking {
     /// Unlike its blocking counterpart, errors received on the OpenSSL level will be returned as
     /// `ErrorKind::Other` with various OpenSSL error information as strings in the description
     /// field of the `std::io::Error`.
-    fn nb_send(&mut self, frame: &Frame) -> Result<(), Error>;
+    fn nb_send(&mut self, frame: &dyn Frame) -> Result<(), Error>;
 }

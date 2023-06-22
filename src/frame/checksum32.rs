@@ -45,7 +45,7 @@ pub struct Checksum32Frame {
 #[derive(Clone)]
 pub struct Checksum32FrameBuilder;
 impl FrameBuilder for Checksum32FrameBuilder {
-    fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<Frame>> {
+    fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<dyn Frame>> {
         if buf.len() < 9 {
             return None;
         }

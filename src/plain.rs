@@ -52,7 +52,7 @@ impl<S, FB> Blocking for Plain<S, FB> where
     S: Read + Write,
     FB: FrameBuilder
 {
-    fn b_recv(&mut self) -> Result<Box<Frame>, Error> {
+    fn b_recv(&mut self) -> Result<Box<dyn Frame>, Error> {
         // Empty anything that is in our buffer already from any previous reads
         match FB::from_bytes(&mut self.rx_buf) {
             Some(boxed_frame) => {
@@ -84,7 +84,7 @@ impl<S, FB> Blocking for Plain<S, FB> where
         }
     }
 
-    fn b_send(&mut self, frame: &Frame) -> Result<(), Error> {
+    fn b_send(&mut self, frame: &dyn Frame) -> Result<(), Error> {
         let out_buf = frame.to_bytes();
         let write_result = self.inner.write(&out_buf[..]);
         if write_result.is_err() {
@@ -102,7 +102,7 @@ impl<S, FB> NonBlocking for Plain<S, FB> where
     S: Read + Write,
     FB: FrameBuilder
 {
-    fn nb_recv(&mut self) -> Result<Vec<Box<Frame>>, Error> {
+    fn nb_recv(&mut self) -> Result<Vec<Box<dyn Frame>>, Error> {
         loop {
             let mut buf = [0u8; BUF_SIZE];
             let read_result = self.inner.read(&mut buf);
@@ -119,7 +119,7 @@ impl<S, FB> NonBlocking for Plain<S, FB> where
             self.rx_buf.extend_from_slice(&buf[0..num_read]);
         }
 
-        let mut ret_buf = Vec::<Box<Frame>>::with_capacity(5);
+        let mut ret_buf = Vec::<Box<dyn Frame>>::with_capacity(5);
         while let Some(boxed_frame) = FB::from_bytes(&mut self.rx_buf) {
             debug!("Complete frame read");
             ret_buf.push(boxed_frame);
@@ -133,7 +133,7 @@ impl<S, FB> NonBlocking for Plain<S, FB> where
         Err(Error::new(ErrorKind::WouldBlock, "WouldBlock"))
     }
 
-    fn nb_send(&mut self, frame: &Frame) -> Result<(), Error> {
+    fn nb_send(&mut self, frame: &dyn Frame) -> Result<(), Error> {
         self.tx_buf.extend_from_slice(&frame.to_bytes()[..]);
 
         let mut out_buf = Vec::<u8>::with_capacity(BUF_SIZE);

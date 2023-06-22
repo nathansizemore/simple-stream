@@ -48,7 +48,7 @@ pub struct SimpleFrame {
 #[derive(Clone)]
 pub struct SimpleFrameBuilder;
 impl FrameBuilder for SimpleFrameBuilder {
-    fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<Frame>> {
+    fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<dyn Frame>> {
         if buf.len() < 5 {
             return None;
         }

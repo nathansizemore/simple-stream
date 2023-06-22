@@ -45,5 +45,5 @@ pub trait FrameBuilder {
     /// Given a `&mut Vec<u8>`, this function should return a Frame Trait Object, if possible,
     /// created from the bytes in `buf`. On success this method should remove all bytes that
     /// were used during the creation of the returned frame, from `buf`.
-    fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<Frame>>;
+    fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<dyn Frame>>;
 }
