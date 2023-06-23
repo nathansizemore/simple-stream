@@ -5,7 +5,6 @@
 // distributed with this file, You can obtain one at
 // http://mozilla.org/MPL/2.0/.
 
-
 //! ## SimleFrame
 //!
 //! ```ignore
@@ -23,30 +22,29 @@
 //! End Guard:      8 bits (0x17)
 //! ```
 
-
 use std::mem;
-use std::default::Default;
 
 use super::{Frame, FrameBuilder};
 
-
 bitflags! {
-    flags FrameGuard: u8 {
-        const START     = 0b0000_0001,
-        const END       = 0b0001_0111
+    #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+    struct FrameGuard: u8 {
+        const START     = 0b0000_0001;
+        const END       = 0b0001_0111;
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SimpleFrame {
     start_guard: FrameGuard,
     payload_len: u16,
     payload: Vec<u8>,
-    end_guard: FrameGuard
+    end_guard: FrameGuard,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy, Debug)]
 pub struct SimpleFrameBuilder;
+
 impl FrameBuilder for SimpleFrameBuilder {
     fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<dyn Frame>> {
         if buf.len() < 5 {
@@ -62,7 +60,10 @@ impl FrameBuilder for SimpleFrameBuilder {
                 frame.start_guard = start_guard;
             }
             None => {
-                error!("First byte was not expected start byte. Buffer corrupted?: {:#b}", buf[0]);
+                error!(
+                    "First byte was not expected start byte. Buffer corrupted?: {:#b}",
+                    buf[0]
+                );
             }
         }
 
@@ -89,8 +90,10 @@ impl FrameBuilder for SimpleFrameBuilder {
                 frame.end_guard = end_guard;
             }
             None => {
-                error!("Last byte was not expected end byte. Buffer corrupted? {:#b}",
-                       buf[payload_len + 3]);
+                error!(
+                    "Last byte was not expected end byte. Buffer corrupted? {:#b}",
+                    buf[payload_len + 3]
+                );
                 return None;
             }
         }
@@ -108,10 +111,10 @@ impl SimpleFrame {
     /// Creates a new `SimpleFrame`
     pub fn new(buf: &[u8]) -> Self {
         SimpleFrame {
-            start_guard: START,
+            start_guard: FrameGuard::START,
             payload_len: buf.len() as u16,
             payload: buf.to_vec(),
-            end_guard: END
+            end_guard: FrameGuard::END,
         }
     }
 }
@@ -145,10 +148,10 @@ impl Frame for SimpleFrame {
 impl Default for SimpleFrame {
     fn default() -> SimpleFrame {
         SimpleFrame {
-            start_guard: START,
+            start_guard: FrameGuard::START,
             payload_len: 0u16,
             payload: Vec::<u8>::new(),
-            end_guard: END
+            end_guard: FrameGuard::END,
         }
     }
 }

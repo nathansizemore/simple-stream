@@ -1,24 +1,25 @@
 [package]
 name = "simple-stream"
 version = "0.11.0"
+edition = "2021"
 authors = ["Nathan Sizemore <nathanrsizemore@gmail.com>"]
-description = "Provides various building blocks, abstractions, and types for streams."
+description = "Building blocks for streaming chunks of data over io::Read and io::Write impls."
 readme = "README.md"
-keywords = ["socket", "stream", "non-blocking", "websocket", "ssl"]
+keywords = ["stream", "socket", "chunks", "frames"]
 license = "MPL-2.0"
 repository = "https://github.com/nathansizemore/simple-stream"
-documentation = "https://nathansizemore.github.io/simple-stream/simple_stream/index.html"
+documentation = "https://docs.rs/crate/simple-stream"
 
 [lib]
 name = "simple_stream"
 
 [dependencies]
-log = "^0.4"
-libc = "^0.2"
-bitflags = "^0.7"
+bitflags = "2.3"
+libc = "0.2"
+log = "0.4"
 
 [dependencies.openssl]
-version = "^0.10"
+version = "0.10"
 optional = true
 
 [features]
