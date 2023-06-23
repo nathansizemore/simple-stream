@@ -5,7 +5,6 @@
 // distributed with this file, You can obtain one at
 // http://mozilla.org/MPL/2.0/.
 
-
 //! simple-stream is a buffered stream wrapper over anything that implements
 //! `std::io::Read` and `std::io::Write`. It works by buffering all reads and
 //! checking the buffers against a `FrameBuilder`, which will inform the stream
@@ -57,33 +56,45 @@
 //!
 //! [rust-openssl-repo]: https://github.com/sfackler/rust-openssl
 
-
-#[macro_use] extern crate log;
-#[macro_use] extern crate bitflags;
+#[macro_use]
+extern crate bitflags;
+extern crate libc;
+#[macro_use]
+extern crate log;
 #[cfg(feature = "openssl")]
 extern crate openssl;
 
-use std::io::Error;
-
-use frame::Frame;
-pub use plain::*;
-#[cfg(feature = "openssl")]
-pub use secure::*;
-
 pub mod frame;
 mod plain;
-#[cfg(feature = "openssl")]
 mod secure;
 
+use std::io;
+
+use frame::Frame;
+
+pub use plain::*;
+pub use secure::*;
+
+// use std::io::Error;
+
+// use frame::Frame;
+// pub use plain::*;
+// #[cfg(feature = "openssl")]
+// pub use secure::*;
+
+// pub mod frame;
+// mod plain;
+// #[cfg(feature = "openssl")]
+// mod secure;
 
 /// The `Blocking` trait provides method definitions for use with blocking streams.
 pub trait Blocking {
     /// Performs a blocking read on the underlying stream until a complete Frame has been read
     /// or an `std::io::Error` has occurred.
-    fn b_recv(&mut self) -> Result<Box<dyn Frame>, Error>;
+    fn b_recv(&mut self) -> io::Result<Box<dyn Frame>>;
     /// Performs a blocking send on the underlying stream until a complete frame has been sent
     /// or an `std::io::Error` has occurred.
-    fn b_send(&mut self, frame: &dyn Frame) -> Result<(), Error>;
+    fn b_send(&mut self, frame: &dyn Frame) -> io::Result<()>;
 }
 
 /// The `NonBlocking` trait provides method definitions for use with non-blocking streams.
@@ -96,7 +107,7 @@ pub trait NonBlocking {
     /// Unlike its blocking counterpart, errors received on the OpenSSL level will be returned as
     /// `ErrorKind::Other` with various OpenSSL error information as strings in the description
     /// field of the `std::io::Error`.
-    fn nb_recv(&mut self) -> Result<Vec<Box<dyn Frame>>, Error>;
+    fn nb_recv(&mut self) -> io::Result<Vec<Box<dyn Frame>>>;
     /// Performs a non-blocking send on the underlying stream until `ErrorKind::WouldBlock` or an
     /// `std::io::Error` has occurred.
     ///
@@ -105,5 +116,5 @@ pub trait NonBlocking {
     /// Unlike its blocking counterpart, errors received on the OpenSSL level will be returned as
     /// `ErrorKind::Other` with various OpenSSL error information as strings in the description
     /// field of the `std::io::Error`.
-    fn nb_send(&mut self, frame: &dyn Frame) -> Result<(), Error>;
+    fn nb_send(&mut self, frame: &dyn Frame) -> io::Result<()>;
 }

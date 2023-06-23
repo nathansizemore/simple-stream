@@ -5,7 +5,6 @@
 // distributed with this file, You can obtain one at
 // http://mozilla.org/MPL/2.0/.
 
-
 //! The `frame::websocket` module provides [RFC-6465][rfc-6455] support for websocket based
 //! streams. This module provides no support for the handshake part of the protocol, or any
 //! smarts about handling fragmentation messages. It simply encodes/decodes complete websocket
@@ -13,29 +12,26 @@
 //!
 //! [rfc-6455]: https://tools.ietf.org/html/rfc6455
 
-
-
-use std::{u16, fmt, mem};
-use std::default::Default;
+use std::{fmt, mem};
 
 use super::{Frame, FrameBuilder};
 
-
 bitflags! {
-    flags OpCode: u8 {
-        const CONTINUATION  = 0b0000_0000,
-        const TEXT          = 0b0000_0001,
-        const BINARY        = 0b0000_0010,
-        const CLOSE         = 0b0000_1000,
-        const PING          = 0b0000_1001,
-        const PONG          = 0b0000_1010
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    struct OpCode: u8 {
+        const CONTINUATION  = 0b0000_0000;
+        const TEXT          = 0b0000_0001;
+        const BINARY        = 0b0000_0010;
+        const CLOSE         = 0b0000_1000;
+        const PING          = 0b0000_1001;
+        const PONG          = 0b0000_1010;
     }
 }
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum FrameType {
     Control,
-    Data
+    Data,
 }
 
 #[derive(Clone, PartialEq, Eq)]
@@ -45,7 +41,7 @@ pub enum OpType {
     Binary,
     Close,
     Ping,
-    Pong
+    Pong,
 }
 
 #[derive(Clone)]
@@ -53,23 +49,24 @@ struct Header {
     op_code: OpCode,
     mask: bool,
     payload_len: u64,
-    masking_key: [u8; 4]
+    masking_key: [u8; 4],
 }
 
 #[derive(Clone)]
 struct Payload {
-    data: Vec<u8>
+    data: Vec<u8>,
 }
 
 #[derive(Clone)]
 pub struct WebSocketFrame {
     frame_type: FrameType,
     header: Header,
-    payload: Payload
+    payload: Payload,
 }
 
 #[derive(Clone)]
 pub struct WebSocketFrameBuilder;
+
 impl FrameBuilder for WebSocketFrameBuilder {
     fn from_bytes(buf: &mut Vec<u8>) -> Option<Box<dyn Frame>> {
         if buf.len() < 5 {
@@ -83,27 +80,23 @@ impl FrameBuilder for WebSocketFrameBuilder {
         let op_byte = buf[0] & FIN_CLEAR_MASK;
         match OpCode::from_bits(op_byte) {
             Some(op_code) => {
-                if op_code == CONTINUATION {
+                if op_code == OpCode::CONTINUATION {
                     frame.frame_type = FrameType::Data;
-                    frame.header.op_code = CONTINUATION;
-                } else if op_code == TEXT {
+                } else if op_code == OpCode::TEXT {
                     frame.frame_type = FrameType::Data;
-                    frame.header.op_code = TEXT;
-                } else if op_code == BINARY {
+                } else if op_code == OpCode::BINARY {
                     frame.frame_type = FrameType::Data;
-                    frame.header.op_code = BINARY;
-                } else if op_code == CLOSE {
+                } else if op_code == OpCode::CLOSE {
                     frame.frame_type = FrameType::Control;
-                    frame.header.op_code = CLOSE;
-                } else if op_code == PING {
+                } else if op_code == OpCode::PING {
                     frame.frame_type = FrameType::Control;
-                    frame.header.op_code = PING;
-                } else if op_code == PONG {
+                } else if op_code == OpCode::PONG {
                     frame.frame_type = FrameType::Control;
-                    frame.header.op_code = PONG;
                 } else {
                     unreachable!();
                 }
+
+                frame.header.op_code = op_code;
             }
             None => {
                 error!("Invalid OpCode bits: {:#b}", buf[0]);
@@ -167,7 +160,10 @@ impl FrameBuilder for WebSocketFrameBuilder {
 
         // Payload data
         let len = frame.header.payload_len as usize;
-        frame.payload.data.extend_from_slice(&buf[next_offset..(len + next_offset)]);
+        frame
+            .payload
+            .data
+            .extend_from_slice(&buf[next_offset..(len + next_offset)]);
 
         // Remove from buffer
         let mut remainder = Vec::<u8>::with_capacity(buf.len() - frame.len_as_vec());
@@ -181,23 +177,21 @@ impl FrameBuilder for WebSocketFrameBuilder {
 impl WebSocketFrame {
     pub fn new(buf: &[u8], frame_type: FrameType, op_type: OpType) -> WebSocketFrame {
         WebSocketFrame {
-            frame_type: frame_type,
+            frame_type,
             header: Header {
                 op_code: match op_type {
-                    OpType::Continuation => CONTINUATION,
-                    OpType::Text => TEXT,
-                    OpType::Binary => BINARY,
-                    OpType::Close => CLOSE,
-                    OpType::Ping => PING,
-                    OpType::Pong => PONG,
+                    OpType::Continuation => OpCode::CONTINUATION,
+                    OpType::Text => OpCode::TEXT,
+                    OpType::Binary => OpCode::BINARY,
+                    OpType::Close => OpCode::CLOSE,
+                    OpType::Ping => OpCode::PING,
+                    OpType::Pong => OpCode::PONG,
                 },
                 mask: false,
                 payload_len: buf.len() as u64,
-                masking_key: [0u8; 4]
+                masking_key: [0u8; 4],
             },
-            payload: Payload {
-                data: buf.to_vec()
-            }
+            payload: Payload { data: buf.to_vec() },
         }
     }
 
@@ -209,7 +203,7 @@ impl WebSocketFrame {
             CLOSE => OpType::Close,
             PING => OpType::Ping,
             PONG => OpType::Pong,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -332,14 +326,14 @@ impl Default for WebSocketFrame {
         WebSocketFrame {
             frame_type: FrameType::Control,
             header: Header {
-                op_code: CONTINUATION,
+                op_code: OpCode::CONTINUATION,
                 mask: false,
                 payload_len: 0u64,
-                masking_key: [0u8; 4]
+                masking_key: [0u8; 4],
             },
             payload: Payload {
-                data: Vec::<u8>::new()
-            }
+                data: Vec::<u8>::new(),
+            },
         }
     }
 }
@@ -348,7 +342,7 @@ impl fmt::Debug for FrameType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             FrameType::Control => write!(f, "FrameType::Control"),
-            FrameType::Data => write!(f, "FrameType::Data")
+            FrameType::Data => write!(f, "FrameType::Data"),
         }
     }
 }
@@ -357,7 +351,7 @@ impl fmt::Display for FrameType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             FrameType::Control => write!(f, "FrameType::Control"),
-            FrameType::Data => write!(f, "FrameType::Data")
+            FrameType::Data => write!(f, "FrameType::Data"),
         }
     }
 }

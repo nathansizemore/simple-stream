@@ -5,37 +5,37 @@
 // distributed with this file, You can obtain one at
 // http://mozilla.org/MPL/2.0/.
 
-
-use std::mem;
+use std::io::{Error, ErrorKind, Read, Write};
 use std::marker::PhantomData;
-use std::os::unix::io::{RawFd, AsRawFd};
-use std::io::{Read, Write, Error, ErrorKind};
+use std::mem;
+use std::os::unix::io::{AsRawFd, RawFd};
 
 // use libc;
 // use errno::errno;
 
-use frame::{Frame, FrameBuilder};
-use super::{Blocking, NonBlocking};
+use crate::frame::{Frame, FrameBuilder};
 
+use super::{Blocking, NonBlocking};
 
 const BUF_SIZE: usize = 1024;
 
-
 /// Plain text stream.
 #[derive(Clone)]
-pub struct Plain<S, FB> where
+pub struct Plain<S, FB>
+where
     S: Read + Write,
-    FB: FrameBuilder
+    FB: FrameBuilder,
 {
     inner: S,
     rx_buf: Vec<u8>,
     tx_buf: Vec<u8>,
-    phantom: PhantomData<FB>
+    phantom: PhantomData<FB>,
 }
 
-impl<S, FB> Plain<S, FB> where
+impl<S, FB> Plain<S, FB>
+where
     S: Read + Write,
-    FB: FrameBuilder
+    FB: FrameBuilder,
 {
     /// Creates a new plain text stream.
     pub fn new(stream: S) -> Plain<S, FB> {
@@ -43,14 +43,15 @@ impl<S, FB> Plain<S, FB> where
             inner: stream,
             rx_buf: Vec::<u8>::with_capacity(BUF_SIZE),
             tx_buf: Vec::<u8>::with_capacity(BUF_SIZE),
-            phantom: PhantomData
+            phantom: PhantomData,
         }
     }
 }
 
-impl<S, FB> Blocking for Plain<S, FB> where
+impl<S, FB> Blocking for Plain<S, FB>
+where
     S: Read + Write,
-    FB: FrameBuilder
+    FB: FrameBuilder,
 {
     fn b_recv(&mut self) -> Result<Box<dyn Frame>, Error> {
         // Empty anything that is in our buffer already from any previous reads
@@ -59,7 +60,7 @@ impl<S, FB> Blocking for Plain<S, FB> where
                 debug!("Complete frame read");
                 return Ok(boxed_frame);
             }
-            None => { }
+            None => {}
         };
 
         loop {
@@ -79,7 +80,7 @@ impl<S, FB> Blocking for Plain<S, FB> where
                     debug!("Complete frame read");
                     return Ok(boxed_frame);
                 }
-                None => { }
+                None => {}
             };
         }
     }
@@ -98,9 +99,10 @@ impl<S, FB> Blocking for Plain<S, FB> where
     }
 }
 
-impl<S, FB> NonBlocking for Plain<S, FB> where
+impl<S, FB> NonBlocking for Plain<S, FB>
+where
     S: Read + Write,
-    FB: FrameBuilder
+    FB: FrameBuilder,
 {
     fn nb_recv(&mut self) -> Result<Vec<Box<dyn Frame>>, Error> {
         loop {
@@ -150,11 +152,16 @@ impl<S, FB> NonBlocking for Plain<S, FB> where
             return Err(Error::new(ErrorKind::Other, "Write returned zero"));
         }
 
-        trace!("Tried to write {} byte(s) wrote {} byte(s)", out_buf.len(), num_written);
+        trace!(
+            "Tried to write {} byte(s) wrote {} byte(s)",
+            out_buf.len(),
+            num_written
+        );
 
         if num_written < out_buf.len() {
             let out_buf_len = out_buf.len();
-            self.tx_buf.extend_from_slice(&out_buf[num_written..out_buf_len]);
+            self.tx_buf
+                .extend_from_slice(&out_buf[num_written..out_buf_len]);
 
             return Err(Error::new(ErrorKind::WouldBlock, "WouldBlock"));
         }
@@ -163,9 +170,10 @@ impl<S, FB> NonBlocking for Plain<S, FB> where
     }
 }
 
-impl<S, FB> AsRawFd for Plain<S, FB> where
+impl<S, FB> AsRawFd for Plain<S, FB>
+where
     S: Read + Write + AsRawFd,
-    FB: FrameBuilder
+    FB: FrameBuilder,
 {
     fn as_raw_fd(&self) -> RawFd {
         self.inner.as_raw_fd()
