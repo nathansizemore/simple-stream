@@ -77,18 +77,6 @@ pub use plain::*;
 #[cfg(feature = "openssl")]
 pub use secure::*;
 
-// use std::io::Error;
-
-// use frame::Frame;
-// pub use plain::*;
-// #[cfg(feature = "openssl")]
-// pub use secure::*;
-
-// pub mod frame;
-// mod plain;
-// #[cfg(feature = "openssl")]
-// mod secure;
-
 /// The `Blocking` trait provides method definitions for use with blocking streams.
 pub trait Blocking {
     /// Performs a blocking read on the underlying stream until a complete Frame has been read
