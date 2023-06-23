@@ -191,13 +191,6 @@ where
                     // Other error types should not be thrown from this operation
                     return Err(io::Error::new(
                         io::ErrorKind::Other,
-                        "Unknown error during ssl_read",
-                    ));
-                }
-                _ => {
-                    // Other error types should not be thrown from this operation
-                    return Err(io::Error::new(
-                        io::ErrorKind::Other,
                         "Unknown error during ssl_write",
                     ));
                 }

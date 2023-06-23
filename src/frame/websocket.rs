@@ -17,7 +17,7 @@ use std::{fmt, mem};
 use super::{Frame, FrameBuilder};
 
 bitflags! {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
     struct OpCode: u8 {
         const CONTINUATION  = 0b0000_0000;
         const TEXT          = 0b0000_0001;
@@ -28,13 +28,13 @@ bitflags! {
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FrameType {
     Control,
     Data,
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OpType {
     Continuation,
     Text,
@@ -197,12 +197,12 @@ impl WebSocketFrame {
 
     pub fn op_type(&self) -> OpType {
         match self.header.op_code {
-            CONTINUATION => OpType::Continuation,
-            TEXT => OpType::Text,
-            BINARY => OpType::Binary,
-            CLOSE => OpType::Close,
-            PING => OpType::Ping,
-            PONG => OpType::Pong,
+            OpCode::CONTINUATION => OpType::Continuation,
+            OpCode::TEXT => OpType::Text,
+            OpCode::BINARY => OpType::Binary,
+            OpCode::CLOSE => OpType::Close,
+            OpCode::PING => OpType::Ping,
+            OpCode::PONG => OpType::Pong,
             _ => unreachable!(),
         }
     }
@@ -338,33 +338,11 @@ impl Default for WebSocketFrame {
     }
 }
 
-impl fmt::Debug for FrameType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            FrameType::Control => write!(f, "FrameType::Control"),
-            FrameType::Data => write!(f, "FrameType::Data"),
-        }
-    }
-}
-
 impl fmt::Display for FrameType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             FrameType::Control => write!(f, "FrameType::Control"),
             FrameType::Data => write!(f, "FrameType::Data"),
-        }
-    }
-}
-
-impl fmt::Debug for OpType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            OpType::Continuation => write!(f, "OpType::Continuation"),
-            OpType::Text => write!(f, "OpType::Text"),
-            OpType::Binary => write!(f, "OpType::Binary"),
-            OpType::Close => write!(f, "OpType::Close"),
-            OpType::Ping => write!(f, "OpType::Ping"),
-            OpType::Pong => write!(f, "OpType::Pong"),
         }
     }
 }

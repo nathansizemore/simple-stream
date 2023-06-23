@@ -27,14 +27,14 @@ use std::mem;
 use super::{Frame, FrameBuilder};
 
 bitflags! {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
     struct FrameGuard: u8 {
         const START     = 0b0000_0001;
         const END       = 0b0001_0111;
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SimpleFrame {
     start_guard: FrameGuard,
     payload_len: u16,
@@ -42,7 +42,7 @@ pub struct SimpleFrame {
     end_guard: FrameGuard,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy, Debug)]
 pub struct SimpleFrameBuilder;
 
 impl FrameBuilder for SimpleFrameBuilder {
