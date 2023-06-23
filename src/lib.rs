@@ -66,6 +66,7 @@ extern crate openssl;
 
 pub mod frame;
 mod plain;
+#[cfg(feature = "openssl")]
 mod secure;
 
 use std::io;
@@ -73,6 +74,7 @@ use std::io;
 use frame::Frame;
 
 pub use plain::*;
+#[cfg(feature = "openssl")]
 pub use secure::*;
 
 // use std::io::Error;
